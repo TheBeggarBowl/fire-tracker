@@ -82,11 +82,13 @@ export default function App() {
   };
 
   const formatCurrency = (val) => {
-    const { currency } = inputs;
-    const locales = currency === "INR" ? "en-IN" : "en-US";
-    const symbol = currency === "INR" ? "₹" : "$";
-    return `${symbol}${Intl.NumberFormat(locales, { maximumFractionDigits: 0 }).format(val)}`;
-  };
+  const currency = inputs?.currency || "INR";
+  const locales = currency === "INR" ? "en-IN" : "en-US";
+  const symbol = currency === "INR" ? "₹" : "$";
+  return `${symbol}${Intl.NumberFormat(locales, {
+    maximumFractionDigits: 0,
+  }).format(val)}`;
+};
 
   const getColor = (val, t) => {
     if (val >= t.fat) return "bg-cyan-300";
