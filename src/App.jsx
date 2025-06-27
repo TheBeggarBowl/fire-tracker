@@ -157,37 +157,7 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
   });
 };
 
-const calcFutureFIRE = () => {
-  const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
-  const milestones = [
-    { key: "Lean FIRE", icon: "🏋️‍♂️", target: leanTarget },
-    { key: "Coast FIRE", icon: "🦈", target: coastTarget },
-    { key: "FIRE", icon: "🔥", target: fireTarget },
-    { key: "Fat FIRE", icon: "🐋", target: fatTarget },
-  ];
-
-  const data = [];
-  for (const { key, icon, target } of milestones) {
-    let yearFound = null;
-    for (const [yearStr, value] of Object.entries(results.cons)) {
-      const year = parseInt(yearStr);
-      if (value >= target) {
-        yearFound = year;
-        break;
-      }
-    }
-    if (yearFound) {
-      const age = inputs.currentAge + (yearFound - inputs.startYear);
-      data.push({ label: `${icon} ${key}`, target, year: yearFound, age });
-    } else {
-      data.push({ label: `${icon} ${key}`, target, year: "-", age: "-", note: "Not achieved" });
-    }
-  }
-
-  return data;
-};
-
-  if (!results) return null;
+ if (!results) return null;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
