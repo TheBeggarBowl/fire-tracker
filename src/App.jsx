@@ -39,9 +39,8 @@ export default function App() {
 
   useEffect(() => {
     alert(
-      `📢 DISCLAIMER:\n\nBuilt by someone who partied through their 20s & 30s,  
-then woke up post-40 realizing financial freedom matters.\n\nUse at your own discretion—these are projections.\nPlan to fail, but don’t fail to plan!\n\nNo blame if things don’t match 🙈\n\nFound it useful? Share the love!`
-    );
+  `📢 Disclaimer:\n\nThis tool offers rough projections — not guarantees. Use it at your own discretion.\nThe creator takes no responsibility for any unexpected outcomes.\n\nIf you find it helpful, spread the word. Good luck on your FIRE journey! 🔥`
+);
   }, []);
 
   const update = (k,v) => setInputs(prev => ({ ...prev, [k]: isNaN(v)? v : Number(v) }));
