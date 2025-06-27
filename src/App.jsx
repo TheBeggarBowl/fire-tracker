@@ -35,24 +35,49 @@ export default function App() {
   }, [inputs]);
 
   const updateInput = (key, value) => {
-    setInputs((prev) => ({ ...prev, [key]: Number(value) }));
+    setInputs((prev) => ({
+      ...prev,
+      [key]: key === "currency" ? value : Number(value),
+    }));
   };
 
   const calculate = () => {
-    const { sip, initial, startMonth, startYear, projectionYears, conservative, aggressive, currentAge, desiredFIREAge, desiredCoastAge, monthlyExpense, inflation } = inputs;
+    const {
+      sip,
+      initial,
+      startMonth,
+      startYear,
+      projectionYears,
+      conservative,
+      aggressive,
+      currentAge,
+      desiredFIREAge,
+      desiredCoastAge,
+      monthlyExpense,
+      inflation,
+    } = inputs;
     const totalMonths = projectionYears * 12;
     const yearsToFIRE = desiredFIREAge - currentAge;
     const yearsToCoast = desiredCoastAge - currentAge;
     const yearlyToday = monthlyExpense * 12;
-    const yearlyRetirement = yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
+    const yearlyRetirement =
+      yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
     const leanTarget = yearlyRetirement * 15;
     const fireTarget = yearlyRetirement * 25;
     const fatTarget = yearlyRetirement * 40;
 
-    const coastFutureValue = yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
-    const coastTarget = coastFutureValue / Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
+    const coastFutureValue =
+      yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
+    const coastTarget =
+      coastFutureValue /
+      Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
 
-    const targets = { lean: leanTarget, coast: coastTarget, fire: fireTarget, fat: fatTarget };
+    const targets = {
+      lean: leanTarget,
+      coast: coastTarget,
+      fire: fireTarget,
+      fat: fatTarget,
+    };
 
     const project = (rate) => {
       let portfolio = initial;
@@ -82,13 +107,13 @@ export default function App() {
   };
 
   const formatCurrency = (val) => {
-  const currency = inputs?.currency || "INR";
-  const locales = currency === "INR" ? "en-IN" : "en-US";
-  const symbol = currency === "INR" ? "₹" : "$";
-  return `${symbol}${Intl.NumberFormat(locales, {
-    maximumFractionDigits: 0,
-  }).format(val)}`;
-};
+    const currency = inputs?.currency || "INR";
+    const locales = currency === "INR" ? "en-IN" : "en-US";
+    const symbol = currency === "INR" ? "₹" : "$";
+    return `${symbol}${Intl.NumberFormat(locales, {
+      maximumFractionDigits: 0,
+    }).format(val)}`;
+  };
 
   const getColor = (val, t) => {
     if (val >= t.fat) return "bg-cyan-300";
@@ -99,63 +124,20 @@ export default function App() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 font-sans">
-      <h1 className="text-2xl font-bold">🔥 The Beggar Bowl: FIRE Tracker</h1>
+    <div className="p-6 max-w-6xl mx-auto space-y-6 font-sans">
+      <h1 className="text-2xl font-bold mb-4">🔥 The Beggar Bowl: FIRE Tracker</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {Object.entries(defaultInputs).map(([key, def]) => (
-          <div key={key} className="space-y-1">
-            <label className="text-sm font-medium capitalize">{key.replace(/([A-Z])/g, " $1")}</label>
-            <input
-              type="number"
-              className="w-full px-2 py-1 border rounded"
-              value={inputs[key]}
-              onChange={(e) => updateInput(key, e.target.value)}
-            />
-          </div>
-        ))}
+      {/* Currency Picker */}
+      <div className="mb-4">
+        <label className="font-medium text-sm mr-2">Select Currency:</label>
+        <select
+          className="border px-2 py-1 rounded"
+          value={inputs.currency}
+          onChange={(e) => updateInput("currency", e.target.value)}
+        >
+          <option value="INR">INR (₹)</option>
+          <option value="USD">USD ($)</option>
+        </select>
       </div>
 
-      {results && (
-        <>
-          <div>
-            <h2 className="text-lg font-semibold mt-6">Projection Summary</h2>
-            <table className="w-full mt-2 text-sm border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border px-2 py-1">Year</th>
-                  <th className="border px-2 py-1">Conservative</th>
-                  <th className="border px-2 py-1">Aggressive</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(results.cons).map((year) => (
-                  <tr key={year}>
-                    <td className="border px-2 py-1">{year}</td>
-                    <td className={`border px-2 py-1 ${getColor(results.cons[year], results.targets)}`}>
-                      {formatCurrency(results.cons[year])}
-                    </td>
-                    <td className={`border px-2 py-1 ${getColor(results.aggr[year], results.targets)}`}>
-                      {formatCurrency(results.aggr[year])}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="mt-4 text-sm text-gray-700">
-              <strong>Legend:</strong>
-              <div className="flex gap-4 mt-2">
-                <span className="bg-yellow-200 px-2 py-1 rounded">Lean FIRE</span>
-                <span className="bg-blue-300 px-2 py-1 rounded">Coast FIRE</span>
-                <span className="bg-green-300 px-2 py-1 rounded">FIRE</span>
-                <span className="bg-cyan-300 px-2 py-1 rounded">FAT FIRE</span>
-              </div>
-              <p className="mt-2 italic">* Coast FIRE assumes stopping contributions and 10% return until FIRE age.</p>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-
