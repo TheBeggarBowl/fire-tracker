@@ -20,24 +20,26 @@ export default function App() {
   };
 
   const [inputs, setInputs] = useState(() => {
-    const stored = Object.keys(defaultInputs).reduce((acc, key) => {
+    return Object.keys(defaultInputs).reduce((acc, key) => {
       acc[key] = JSON.parse(localStorage.getItem(key)) ?? defaultInputs[key];
       return acc;
     }, {});
-    return stored;
   });
 
   const [results, setResults] = useState(null);
 
   useEffect(() => {
-    Object.entries(inputs).forEach(([key, value]) =>
-      localStorage.setItem(key, JSON.stringify(value))
-    );
+    Object.entries(inputs).forEach(([key, value]) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    });
     calculate();
   }, [inputs]);
 
   const updateInput = (key, value) => {
-    setInputs((prev) => ({ ...prev, [key]: isNaN(value) ? value : Number(value) }));
+    setInputs((prev) => ({
+      ...prev,
+      [key]: isNaN(value) ? value : Number(value),
+    }));
   };
 
   const calculate = () => {
@@ -72,21 +74,17 @@ export default function App() {
 
     const project = (rate) => {
       let portfolio = initial;
-      let monthlyRate = rate / 12 / 100;
-      let yearlyTotals = {};
+      const monthlyRate = rate / 12 / 100;
+      const yearlyTotals = {};
       let year = startYear;
       let month = startMonth - 1;
-      for (let i = 0; i < totalMonths; i++) {
+      for (let i = 0; i <= totalMonths; i++) {
         portfolio = portfolio * (1 + monthlyRate) + sip;
+        if (!yearlyTotals[year]) yearlyTotals[year] = portfolio;
         month++;
-        if (month >= 12) {
+        if (month === 12) {
           month = 0;
           year++;
-        }
-        if ((i + 1 + (startMonth - 1)) % 12 === 0 || i === totalMonths - 1) {
-          if (year >= startYear) {
-            yearlyTotals[year] = portfolio;
-          }
         }
       }
       return yearlyTotals;
@@ -99,7 +97,7 @@ export default function App() {
   };
 
   const formatCurrency = (val) => {
-    const currency = inputs?.currency || "INR";
+    const currency = inputs.currency;
     const locales = currency === "INR" ? "en-IN" : "en-US";
     const symbol = currency === "INR" ? "₹" : "$";
     return `${symbol}${Intl.NumberFormat(locales, {
@@ -117,13 +115,12 @@ export default function App() {
 
   const fireProgress = () => {
     if (!results) return "Calculating...";
-    const firstYear = Math.min(...Object.keys(results.cons));
-    const projectedNetworth = results.cons[firstYear];
+    const networth = results.cons[inputs.startYear];
     const { lean, coast, fire, fat } = results.targets;
-    if (projectedNetworth >= fat) return "Fat FIRE achieved 🎉";
-    if (projectedNetworth >= fire) return "FIRE achieved 💰";
-    if (projectedNetworth >= coast) return "Coast FIRE achieved 🏖️";
-    if (projectedNetworth >= lean) return "Lean FIRE achieved 🔥";
+    if (networth >= fat) return "Fat FIRE achieved 🎉";
+    if (networth >= fire) return "FIRE achieved 💰";
+    if (networth >= coast) return "Coast FIRE achieved 🏖️";
+    if (networth >= lean) return "Lean FIRE achieved 🔥";
     return "FIRE goal in progress...";
   };
 
@@ -196,6 +193,7 @@ export default function App() {
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Lean FIRE</strong>: Basic living expenses, minimal lifestyle</li>
               <li><strong>Coast FIRE</strong>: You can stop investing and still retire comfortably at your desired age (assumes 10% growth)</li>
+              <li className="text-xs italic text-gray-600 ml-1">* Coast FIRE assumes 10% annual return until FIRE age.</li>
               <li><strong>FIRE</strong>: Comfortable retirement with standard lifestyle</li>
               <li><strong>Fat FIRE</strong>: Luxurious retirement with high-end spending</li>
             </ul>
@@ -225,9 +223,6 @@ export default function App() {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-xs italic text-gray-500">
-              * Coast FIRE assumes stopping contributions and 10% annual return until FIRE age.
-            </p>
           </div>
         </>
       )}
