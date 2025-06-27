@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 
-const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthNames = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
 const fireIcons = {
-  lean: "🏋️",
-  coast: "🦈",
-  fire: "🔥",
-  fat: "🐋",
+  lean: "🏋️", coast: "🦈", fire: "🔥", fat: "🐋"
 };
 
 export default function App() {
@@ -29,94 +29,68 @@ export default function App() {
   };
 
   const [inputs, setInputs] = useState(() => {
-    const stored = Object.keys(defaultInputs).reduce((acc, key) => {
-      acc[key] = JSON.parse(localStorage.getItem(key)) ?? defaultInputs[key];
+    return Object.keys(defaultInputs).reduce((acc, k) => {
+      acc[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
       return acc;
     }, {});
-    return stored;
   });
-
   const [results, setResults] = useState(null);
 
   useEffect(() => {
-    Object.entries(inputs).forEach(([key, value]) =>
-      localStorage.setItem(key, JSON.stringify(value))
+    Object.entries(inputs).forEach(([k, v]) =>
+      localStorage.setItem(k, JSON.stringify(v))
     );
     calculate();
   }, [inputs]);
 
   useEffect(() => {
     alert(
-      `DISCLAIMER 🤪\n\nThis tracker was created by someone who spent their 20s and 30s partying, and suddenly woke up after 40 to realize financial freedom is the need of the hour.\n\nUse it at your own discretion. These are projections to help plan.\nPlan to fail, but don’t fail to plan!\n\nDon’t blame the creator if your life doesn’t match this tracker’s results 🙈\n\nIf you like it and find it useful, spread the word!`
+      `📢 DISCLAIMER:\n\nThis tracker was built by someone who spent their 20s and 30s partying,\nthen woke up after 40 realizing financial freedom is urgent.\n\nUse at your own discretion—these are mere projections.\nPlan to fail, don’t fail to plan!\n\nNo blame if things don’t go as shown 🫠\n\nFound it useful? Spread the word!`
     );
   }, []);
 
-  const updateInput = (key, value) => {
-    setInputs((prev) => ({ ...prev, [key]: isNaN(value) ? value : Number(value) }));
-  };
+  const updateInput = (k, v) =>
+    setInputs((prev) => ({ ...prev, [k]: isNaN(v) ? v : Number(v) }));
 
   const calculate = () => {
     const {
-      sip,
-      initial,
-      startMonth,
-      startYear,
-      projectionYears,
-      conservative,
-      aggressive,
-      currentAge,
-      desiredFIREAge,
-      desiredCoastAge,
-      monthlyExpense,
-      inflation,
+      sip, initial, startMonth, startYear, projectionYears,
+      conservative, aggressive, currentAge,
+      desiredFIREAge, desiredCoastAge,
+      monthlyExpense, inflation,
     } = inputs;
 
-    const totalMonths = projectionYears * 12;
-    const yearlyToday = monthlyExpense * 12;
-    const yearsToFIRE = desiredFIREAge - currentAge;
-    const yearsToCoast = desiredCoastAge - currentAge;
+    // YEARLY EXPENSES PROJECTION
     const yearlyExpenses = {};
-    let inflationFactor = 1;
-
+    let exp = monthlyExpense * 12;
     for (let i = 0; i <= projectionYears; i++) {
-      yearlyExpenses[startYear + i] = yearlyToday * inflationFactor;
-      inflationFactor *= 1 + inflation / 100;
+      yearlyExpenses[startYear + i] = exp;
+      exp *= 1 + inflation / 100;
     }
 
-    const yearlyRetirement = yearlyExpenses[startYear + yearsToFIRE];
-    const leanTarget = yearlyRetirement * 15;
-    const fireTarget = yearlyRetirement * 25;
-    const fatTarget = yearlyRetirement * 40;
+    // FIRE TARGETS
+    const yrF = startYear + (desiredFIREAge - currentAge);
+    const expAtFIRE = yearlyExpenses[yrF];
+    const leanTarget = expAtFIRE * 15;
+    const fireTarget = expAtFIRE * 25;
+    const fatTarget = expAtFIRE * 40;
+    const coastFuture = (monthlyExpense * 12) * 25
+      * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
+    const coastTarget = coastFuture / Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
+    const targets = { leanTarget, fireTarget, fatTarget, coastTarget };
 
-    const coastFutureValue = yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
-    const coastTarget = coastFutureValue / Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
-
-    const targets = {
-      lean: leanTarget,
-      coast: coastTarget,
-      fire: fireTarget,
-      fat: fatTarget,
-      leanYear: desiredFIREAge,
-      coastYear: desiredCoastAge,
-      fireYear: desiredFIREAge,
-      fatYear: desiredFIREAge,
-    };
-
+    // PROJECTIONS
     const project = (rate) => {
-      let portfolio = initial;
+      let port = initial;
       let monthlyRate = rate / 12 / 100;
-      let yearlyTotals = {};
-      let year = startYear;
-      let month = startMonth - 1;
-      for (let i = 0; i < totalMonths; i++) {
-        portfolio = portfolio * (1 + monthlyRate) + sip;
-        month++;
-        if (month >= 12) {
-          month = 0;
-          year++;
-        }
-        if ((i + 1) % 12 === 0 || i === totalMonths - 1) {
-          yearlyTotals[year] = portfolio;
+      const yearlyTotals = {};
+      let year = startYear, m = startMonth - 1;
+      for (let i = 0; i < projectionYears * 12; i++) {
+        port = port * (1 + monthlyRate) + sip;
+        m++;
+        if (m >= 12) { m = 0; year++; }
+        if ((i + 1) % 12 === 0 || i === projectionYears * 12 - 1) {
+          yearlyTotals[year] = port;
         }
       }
       return yearlyTotals;
@@ -124,179 +98,176 @@ export default function App() {
 
     const cons = project(conservative);
     const aggr = project(aggressive);
-
-    setResults({ cons, aggr, targets, yearlyExpenses });
+    setResults({ yearlyExpenses, targets, cons, aggr });
   };
 
-  const formatCurrency = (val) => {
-    const currency = inputs?.currency || "INR";
-    const locales = currency === "INR" ? "en-IN" : "en-US";
-    const symbol = currency === "INR" ? "₹" : "$";
-    return `${symbol}${Intl.NumberFormat(locales, {
-      maximumFractionDigits: 0,
-    }).format(val)}`;
+  const formatCurrency = (v) => {
+    const cur = inputs.currency, sym = cur === "INR" ? "₹" : "$";
+    const loc = cur === "INR" ? "en-IN" : "en-US";
+    return `${sym}${Intl.NumberFormat(loc, { maximumFractionDigits: 0 }).format(v)}`;
   };
 
-  const getColor = (val, t) => {
-    if (val >= t.fat) return "bg-cyan-300";
-    if (val >= t.fire) return "bg-green-300";
-    if (val >= t.coast) return "bg-blue-300";
-    if (val >= t.lean) return "bg-yellow-200";
+  const getColor = (v, t) => {
+    if (v >= t.fatTarget) return "bg-cyan-300";
+    if (v >= t.fireTarget) return "bg-green-300";
+    if (v >= t.coastTarget) return "bg-blue-300";
+    if (v >= t.leanTarget) return "bg-yellow-200";
     return "bg-white";
   };
 
-  const milestoneStatus = (val, t) => {
-    if (val >= t.fat) return `${fireIcons.fat} Fat FIRE`;
-    if (val >= t.fire) return `${fireIcons.fire} FIRE`;
-    if (val >= t.coast) return `${fireIcons.coast} Coast FIRE`;
-    if (val >= t.lean) return `${fireIcons.lean} Lean FIRE`;
-    return "🧘‍♂️ Not there yet... keep going!";
-  };
-
-  const calculateFIREProgressTable = () => {
-    const networth = inputs.initial;
-    const { lean, coast, fire, fat } = results.targets;
-    const { conservative, desiredFIREAge, currentAge } = inputs;
-
-    const fireData = [
-      { name: "Lean FIRE", icon: fireIcons.lean, target: lean },
-      { name: "Coast FIRE", icon: fireIcons.coast, target: coast },
-      { name: "FIRE", icon: fireIcons.fire, target: fire },
-      { name: "Fat FIRE", icon: fireIcons.fat, target: fat },
+  const calcFIRETable = () => {
+    const now = inputs.initial;
+    const ageYears = inputs.desiredFIREAge - inputs.currentAge;
+    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
+    const data = [
+      ["💪 Lean FIRE", leanTarget, inputs.desiredFIREAge],
+      ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
+      ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
+      ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
     ];
-
-    return fireData.map(({ name, icon, target }) => {
-      const surplus = networth - target;
-      const gap = target - networth;
-      const yearsLeft = desiredFIREAge - currentAge;
-      const reqCAGR =
-        gap <= 0
-          ? 0
-          : ((Math.pow((target - 0.01) / networth, 1 / yearsLeft) - 1) * 100).toFixed(2); // avoid zero division
-
-      return {
-        name: `${icon} ${name}`,
-        target: formatCurrency(target),
-        targetYear: currentYear + yearsLeft,
-        gapSurplus: surplus >= 0 ? `Surplus ${formatCurrency(surplus)}` : `Gap ${formatCurrency(gap)}`,
-        requiredCAGR: surplus >= 0 ? "Achieved ✅" : `${reqCAGR}%`,
-      };
+    return data.map(([label, tgt, targetYr]) => {
+      const gap = now - tgt;
+      const req =
+        gap >= 0
+          ? "Achieved ✅"
+          : `${((Math.pow(tgt / now, 1 / ageYears) - 1) * 100).toFixed(1)}%`;
+      return { label, tgt, targetYr, gap, req };
     });
   };
 
-  const labelMap = {
-    currency: "Currency (INR/USD)",
-    currentAge: "Current Age",
-    desiredFIREAge: "Desired FIRE Age",
-    desiredCoastAge: "Desired Coast FIRE Age",
-    monthlyExpense: "Current Monthly Expenses",
-    inflation: "Inflation (%)",
-    startMonth: "Starting Month",
-    startYear: "Starting Year",
-    initial: "Current Net Worth",
-    sip: "Monthly Investment",
-    projectionYears: "Projection Period (Years)",
-    conservative: "Desired Conservative CAGR (%)",
-    aggressive: "Desired Aggressive CAGR (%)",
-  };
+  if (!results) return null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 font-sans">
-      <h1 className="text-3xl font-bold text-center">🔥 The Beggar Bowl's FIRE Tracker</h1>
+    <div className="p-6 max-w-4xl mx-auto font-sans space-y-8">
+      <h1 className="text-center text-3xl font-bold">
+        🔥 The Beggar Bowl's FIRE Tracker
+      </h1>
 
-      <div className="bg-blue-50 border border-blue-200 rounded p-4 text-sm">
-        <strong className="text-blue-900">FIRE Milestone Descriptions</strong>
-        <ul className="list-disc ml-6 mt-2 space-y-1">
-          <li>🏋️ <strong>Lean FIRE</strong>: Basic living expenses, minimal lifestyle</li>
-          <li>🦈 <strong>Coast FIRE</strong>: You can stop investing and still retire comfortably at FIRE age (assumes 10% growth)</li>
-          <li>🔥 <strong>FIRE</strong>: Comfortable retirement with standard lifestyle</li>
-          <li>🐋 <strong>Fat FIRE</strong>: Luxurious retirement with high-end spending</li>
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
+        <strong>FIRE Milestone Descriptions</strong>
+        <ul className="ml-6 list-disc mt-2">
+          <li>🏋️ <strong>Lean FIRE</strong>: Basic living expenses</li>
+          <li>🦈 <strong>Coast FIRE</strong>: Stop investing, retire at FIRE age</li>
+          <li>🔥 <strong>FIRE</strong>: Comfortable retirement</li>
+          <li>🐋 <strong>Fat FIRE</strong>: Luxurious retirement</li>
         </ul>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Object.entries(defaultInputs).map(([key]) => (
-          <div key={key} className="space-y-1">
-            <label className="text-sm font-medium">{labelMap[key]}</label>
-            {key === "currency" ? (
-              <select value={inputs[key]} onChange={(e) => updateInput(key, e.target.value)} className="w-full px-2 py-1 border rounded">
+      {/* Inputs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Object.entries(defaultInputs).map(([k]) => (
+          <div key={k}>
+            <label className="block text-sm font-medium">
+              {k.replace(/([A-Z])/g, " $1")}
+            </label>
+            {k === "currency" ? (
+              <select
+                value={inputs[k]}
+                onChange={(e) => updateInput(k, e.target.value)}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              >
                 <option value="INR">₹ INR</option>
                 <option value="USD">$ USD</option>
               </select>
-            ) : key === "startMonth" ? (
-              <select value={inputs[key]} onChange={(e) => updateInput(key, e.target.value)} className="w-full px-2 py-1 border rounded">
-                {monthNames.map((month, idx) => (
-                  <option key={idx + 1} value={idx + 1}>{month}</option>
+            ) : k === "startMonth" ? (
+              <select
+                value={inputs[k]}
+                onChange={(e) => updateInput(k, e.target.value)}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              >
+                {monthNames.map((m, i) => (
+                  <option key={i} value={i + 1}>
+                    {m}
+                  </option>
                 ))}
               </select>
             ) : (
-              <input type="number" className="w-full px-2 py-1 border rounded" value={inputs[key]} onChange={(e) => updateInput(key, e.target.value)} />
+              <input
+                type="number"
+                value={inputs[k]}
+                onChange={(e) => updateInput(k, e.target.value)}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              />
             )}
           </div>
         ))}
       </div>
 
-      {results && (
-        <>
-          <div className="mt-6 p-4 bg-gray-100 rounded border">
-            <h2 className="font-semibold text-lg">🔥 FIRE Progress</h2>
-            <table className="w-full mt-2 text-sm border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border px-2 py-1">Milestone</th>
-                  <th className="border px-2 py-1">Target</th>
-                  <th className="border px-2 py-1">Target Year</th>
-                  <th className="border px-2 py-1">Gap / Surplus</th>
-                  <th className="border px-2 py-1">Required CAGR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calculateFIREProgressTable().map((row, idx) => (
-                  <tr key={idx}>
-                    <td className="border px-2 py-1">{row.name}</td>
-                    <td className="border px-2 py-1">{row.target}</td>
-                    <td className="border px-2 py-1">{row.targetYear}</td>
-                    <td className="border px-2 py-1">{row.gapSurplus}</td>
-                    <td className="border px-2 py-1">{row.requiredCAGR}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* FIRE Progress Table */}
+      <div className="bg-gray-100 p-4 rounded">
+        <h2 className="font-semibold text-lg">🔥 FIRE Progress</h2>
+        <table className="w-full text-center text-sm mt-2 border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="border px-2 py-1">Milestone</th>
+              <th className="border px-2 py-1">Target</th>
+              <th className="border px-2 py-1">Target Year</th>
+              <th className="border px-2 py-1">Gap/Surplus</th>
+              <th className="border px-2 py-1">Req. CAGR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {calcFIRETable().map((r, i) => (
+              <tr key={i}>
+                <td className="border px-2 py-1">{r.label}</td>
+                <td className="border px-2 py-1">{formatCurrency(r.tgt)}</td>
+                <td className="border px-2 py-1">{r.targetYr}</td>
+                <td
+                  className={`border px-2 py-1 ${
+                    r.gap >= 0 ? "text-green-700" : "text-red-700"
+                  }`}
+                >
+                  {formatCurrency(Math.abs(r.gap))}
+                </td>
+                <td className="border px-2 py-1">{r.req}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold">📊 Projection Summary</h2>
-            <table className="w-full mt-2 text-sm border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border px-2 py-1">Year</th>
-                  <th className="border px-2 py-1">Expenses</th>
-                  <th className="border px-2 py-1">Conservative</th>
-                  <th className="border px-2 py-1">Aggressive</th>
-                  <th className="border px-2 py-1">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(results.cons).map((year) => (
-                  <tr key={year}>
-                    <td className="border px-2 py-1">{year}</td>
-                    <td className="border px-2 py-1">{formatCurrency(results.yearlyExpenses[year])}</td>
-                    <td className={`border px-2 py-1 ${getColor(results.cons[year], results.targets)}`}>
-                      {formatCurrency(results.cons[year])}
-                    </td>
-                    <td className={`border px-2 py-1 ${getColor(results.aggr[year], results.targets)}`}>
-                      {formatCurrency(results.aggr[year])}
-                    </td>
-                    <td className="border px-2 py-1">
-                      {milestoneStatus(results.cons[year], results.targets)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {/* Projection Summary */}
+      <div>
+        <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
+        <table className="w-full text-sm mt-2 text-center border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="border px-2 py-1">Year</th>
+              <th className="border px-2 py-1">Expenses</th>
+              <th className="border px-2 py-1">Conservative</th>
+              <th className="border px-2 py-1">Aggressive</th>
+              <th className="border px-2 py-1">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(results.cons).map(([yr, val]) => (
+              <tr key={yr}>
+                <td className="border px-2 py-1">{yr}</td>
+                <td className="border px-2 py-1">
+                  {formatCurrency(results.yearlyExpenses[yr] || 0)}
+                </td>
+                <td className={`border px-2 py-1 ${getColor(val, results.targets)}`}>
+                  {formatCurrency(val)}
+                </td>
+                <td className={`border px-2 py-1 ${getColor(results.aggr[yr], results.targets)}`}>
+                  {formatCurrency(results.aggr[yr])}
+                </td>
+                <td className="border px-2 py-1">
+                  {val >= results.targets.fatTarget
+                    ? fireIcons.fat
+                    : val >= results.targets.fireTarget
+                    ? fireIcons.fire
+                    : val >= results.targets.coastTarget
+                    ? fireIcons.coast
+                    : val >= results.targets.leanTarget
+                    ? fireIcons.lean
+                    : "🧭 Keep going!"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
