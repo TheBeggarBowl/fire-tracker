@@ -1,11 +1,28 @@
 import { useEffect, useState } from "react";
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const fireIcons = { lean:"🏋️", coast:"🦈", fire:"🔥", fat:"🐋" };
+const fireIcons = { lean:"🏋️‍♂️", coast:"🦈", fire:"🔥", fat:"🐋" };
+
+const labelMap = {
+  currency: "Currency",
+  currentAge: "Current Age",
+  desiredFIREAge: "Desired FIRE Age",
+  desiredCoastAge: "Desired Coast FIRE Age",
+  monthlyExpense: "Current Monthly Expenses",
+  inflation: "Inflation (%)",
+  startMonth: "Starting Month",
+  startYear: "Starting Year",
+  currentNetWorth: "Current Net Worth",
+  sip: "Monthly Investment",
+  projectionYears: "Projection Period (Years)",
+  desiredConservativeCAGR: "Desired Conservative CAGR (%)",
+  desiredAggressiveCAGR: "Desired Aggressive CAGR (%)"
+};
 
 export default function App() {
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
   const defaultInputs = {
     currency: "INR",
@@ -39,8 +56,13 @@ export default function App() {
 
   useEffect(() => {
     alert(
-  `📢 Disclaimer:\n\nThis tool offers rough projections — not guarantees. Use it at your own discretion.\nThe creator takes no responsibility for any unexpected outcomes.\n\nIf you find it helpful, spread the word. Good luck on your FIRE journey! 🔥`
-);
+`📢 Disclaimer:
+
+This tool offers rough projections — not guarantees.
+Use it at your own discretion. The creator is not responsible for any anomalies.
+
+If you find it helpful, spread the love and good luck on your FIRE journey! 🔥`
+    );
   }, []);
 
   const update = (k,v) => setInputs(prev => ({ ...prev, [k]: isNaN(v)? v : Number(v) }));
@@ -73,13 +95,13 @@ export default function App() {
     const project = (rate) => {
       let port = currentNetWorth;
       const monthlyRate = rate / 12 / 100;
-      let year = startYear, m = startMonth-1;
+      let year = startYear, m = startMonth - 1;
       const yearlyTotals = {};
-      for (let i = 0; i < projectionYears*12; i++) {
+      for (let i = 0; i < projectionYears * 12; i++) {
         port = port*(1+monthlyRate) + sip;
         m++;
-        if (m>=12) { m=0; year++ }
-        if ((i+1)%12===0 || i===projectionYears*12-1) {
+        if (m >= 12) { m = 0; year++; }
+        if ((i + 1) % 12 === 0 || i === projectionYears*12 - 1) {
           yearlyTotals[year] = port;
         }
       }
@@ -101,18 +123,12 @@ export default function App() {
     return `${sym}${Intl.NumberFormat(loc,{maximumFractionDigits:0}).format(v)}`;
   };
 
-  const color = (v,t)=>
-    v>=t.fatTarget ? "bg-cyan-300":
-    v>=t.fireTarget ? "bg-green-300":
-    v>=t.coastTarget? "bg-blue-300":
-    v>=t.leanTarget?"bg-yellow-200":"bg-white";
-
   const calcFIRE = () => {
     const now = inputs.currentNetWorth;
     const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge;
     const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
     const data = [
-      ["🏋️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
+      ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
       ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
       ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
       ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
@@ -120,25 +136,23 @@ export default function App() {
     return data.map(([label,tgt,age]) => {
       const gap = now - tgt;
       const need = gap>=0 ? "Achieved ✅" : `${((Math.pow(tgt/now,1/yearsToFIRE)-1)*100).toFixed(1)}%`;
-      return { label, tgt, age, year: currentYear + yearsToFIRE, gap, need };
+      return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
   };
 
   if (!results) return null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8 font-sans">
-      <h1 className="text-center text-3xl font-bold">
-        🔥 FIRE Tracker 🔥
-      </h1>
+    <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
+      <h1 className="text-center text-3xl font-bold">🔥 The Beggar Bowl’s FIRE Tracker 🔥</h1>
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
-          <li>🏋️ Lean FIRE: Minimalist Lifestyle | Contented retirement </li>
-          <li>🦈 Stop Contributing to retirement savings | Still work through for day to day expenses until FIRE age </li>
-          <li>🔥 FIRE: Moderate Lifestyle | Comfortable retirement </li>
-          <li>🐋 Fat FIRE: Luxuirous Lifestyle | no financial worry </li>
+          <li>🏋️‍♂️ Lean FIRE – Minimal lifestyle</li>
+          <li>🦈 Coast FIRE – Stop investing, work for expenses</li>
+          <li>🔥 FIRE – Comfortable standard of living</li>
+          <li>🐋 Fat FIRE – Luxurious lifestyle</li>
         </ul>
       </div>
 
@@ -146,15 +160,15 @@ export default function App() {
         {Object.entries(defaultInputs).map(([k]) => (
           <div key={k}>
             <label className="block text-sm font-medium">
-              {k.replace(/([A-Z])/g, " $1")}
+              {labelMap[k]}
             </label>
             {(k==="currency"||k==="startMonth") ?
               <select
                 value={inputs[k]}
                 onChange={e => update(k, e.target.value)}
                 className="mt-1 block w-full border rounded px-2 py-1">
-                {k==="currency"?
-                  <><option>₹ INR</option><option>$ USD</option></>
+                {k==="currency" ?
+                  <><option value="INR">INR</option><option value="USD">USD</option></>
                 :
                   monthNames.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
               </select>
@@ -170,7 +184,7 @@ export default function App() {
         ))}
       </div>
 
-      {/* FIRE Progress */}
+      {/* FIRE Progress Table */}
       <div className="bg-gray-100 p-4 rounded">
         <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current net worth)</h2>
         <table className="w-full text-center text-sm mt-2 border">
@@ -179,17 +193,17 @@ export default function App() {
               <th className="border px-2 py-1">Milestone</th>
               <th className="border px-2 py-1">Target</th>
               <th className="border px-2 py-1">Target Age / Year</th>
-              <th className="border px-2 py-1">Gap/Surplus</th>
-              <th className="border px-2 py-1">Req. CAGR</th>
+              <th className="border px-2 py-1">Gap / Surplus</th>
+              <th className="border px-2 py-1">Required CAGR</th>
             </tr>
           </thead>
           <tbody>
             {calcFIRE().map((r,i)=>
               <tr key={i}>
-                <td className="border px-2 py-1">{r.label}</td>
+                <td className="border px-2 py-1 text-lg">{r.label}</td>
                 <td className="border px-2 py-1">{fmt(r.tgt)}</td>
                 <td className="border px-2 py-1">{r.age} / {r.year}</td>
-                <td className={`border px-2 py-1 ${(r.gap>=0 ? "text-green-700":"text-red-700")}`}>
+                <td className={`border px-2 py-1 ${r.gap>=0 ? "text-green-600" : "text-red-600"}`}>
                   {fmt(Math.abs(r.gap))}
                 </td>
                 <td className="border px-2 py-1">{r.need}</td>
@@ -217,13 +231,13 @@ export default function App() {
               <tr key={yr}>
                 <td className="border px-2 py-1">{yr}</td>
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr]||0)}</td>
-                <td className={`border px-2 py-1 ${color(val,results.targets)}`}>{fmt(val)}</td>
-                <td className={`border px-2 py-1 ${color(results.aggr[yr],results.targets)}`}>{fmt(results.aggr[yr])}</td>
-                <td className="border px-2 py-1">
+                <td className="border px-2 py-1">{fmt(val)}</td>
+                <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
+                <td className="border px-2 py-1 text-lg">
                   { val>=results.targets.fatTarget ? fireIcons.fat
                     : val>=results.targets.fireTarget ? fireIcons.fire
-                    : val>=results.targets.coastTarget? fireIcons.coast
-                    : val>=results.targets.leanTarget? fireIcons.lean
+                    : val>=results.targets.coastTarget ? fireIcons.coast
+                    : val>=results.targets.leanTarget ? fireIcons.lean
                     : "🧭 Keep going!" }
                 </td>
               </tr>
