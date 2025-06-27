@@ -156,6 +156,38 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
     return { label, target, year, age };
   });
 };
+const calcFIRE = () => {
+  const milestones = [
+    { label: "🏋️‍♂️ Lean FIRE", tgt: results.targets.leanTarget },
+    { label: "🦈 Coast FIRE", tgt: results.targets.coastTarget },
+    { label: "🔥 FIRE", tgt: results.targets.fireTarget },
+    { label: "🐋 Fat FIRE", tgt: results.targets.fatTarget }
+  ];
+
+  return milestones.map(({ label, tgt }) => {
+    const nw = inputs.currentNetWorth;
+    const age = inputs.currentAge;
+    const years = inputs.desiredFIREAge - age;
+    const cagr = inputs.desiredConservativeCAGR / 100;
+
+    const futureValue = nw * Math.pow(1 + cagr, years);
+    const requiredCAGR = nw >= tgt
+      ? 0
+      : ((Math.pow(tgt / nw, 1 / years) - 1) * 100).toFixed(2);
+
+    const gap = tgt - nw;
+    const need = gap <= 0 ? "✅ Done" : (requiredCAGR > 50 ? "🚫 Unrealistic" : `${requiredCAGR}%`);
+
+    return {
+      label,
+      tgt,
+      age: inputs.desiredFIREAge,
+      year: inputs.startYear + years,
+      gap,
+      need
+    };
+  });
+};
 
  if (!results) return null;
 
