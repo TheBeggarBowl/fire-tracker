@@ -18,6 +18,16 @@ const labelMap = {
   desiredConservativeCAGR: "Conservative Growth Rate (%)",
   desiredAggressiveCAGR: "Aggressive Growth Rate (%)"
 };
+const formatNumberWithCommas = (value, currency) => {
+  const locale = currency === "INR" ? "en-IN" : "en-US";
+  const number = Number(value.toString().replace(/,/g, ""));
+  if (isNaN(number)) return "";
+  return number.toLocaleString(locale);
+};
+
+const parseFormattedNumber = (str) => {
+  return Number(str.toString().replace(/,/g, ""));
+};
 
 export default function App() {
   const now = new Date();
@@ -113,12 +123,20 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
     });
   };
 
-  const fmt = v => {
-    const cur = inputs.currency;
-    const sym = cur==="INR" ? "₹" : "$";
-    const loc = cur==="INR" ? "en-IN" : "en-US";
-    return `${sym}${Intl.NumberFormat(loc,{maximumFractionDigits:0}).format(v)}`;
-  };
+ const fmt = (v) => {
+  const cur = inputs.currency;
+  const sym = cur === "INR" ? "₹" : "$";
+
+  if (cur === "INR") {
+    if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
+    if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
+    return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  } else {
+    if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
+    if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
+    return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  }
+};
 
   const calcFIRE = () => {
     const now = inputs.currentNetWorth;
@@ -171,11 +189,12 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
               </select>
             :
               <input
-                type="number"
-                value={inputs[k]}
-                onChange={e => update(k, e.target.value)}
+                type="text"
+                value={formatNumberWithCommas(inputs[k], inputs.currency)}
+                onChange={e => update(k, parseFormattedNumber(e.target.value))}
                 className="mt-1 block w-full border rounded px-2 py-1"
               />
+
             }
           </div>
         ))}
