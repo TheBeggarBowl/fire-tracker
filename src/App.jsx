@@ -1,27 +1,39 @@
 import { useEffect, useState } from "react";
 
+const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fireIcons = { lean:"🏋️‍♂️", coast:"🦈", fire:"🔥", fat:"🐋" };
+
+const labelMap = {
+  currency: "Currency",
+  currentAge: "Your Current Age",
+  desiredFIREAge: "Target Age for FIRE",
+  desiredCoastAge: "Target Age for Coast FIRE",
+  monthlyExpense: "Monthly Living Expenses (Today)",
+  inflation: "Expected Inflation Rate (%)",
+  startMonth: "Projection Start Month",
+  startYear: "Projection Start Year",
+  currentNetWorth: "Current Retirement Corpus",
+  sip: "Monthly Investment Contribution",
+  projectionYears: "Projection Duration (Years)",
+  desiredConservativeCAGR: "Conservative Growth Rate (%)",
+  desiredAggressiveCAGR: "Aggressive Growth Rate (%)"
+};
+const formatNumberWithCommas = (value, currency) => {
+  const locale = currency === "INR" ? "en-IN" : "en-US";
+  const number = Number(value.toString().replace(/,/g, ""));
+  if (isNaN(number)) return "";
+  return number.toLocaleString(locale);
+};
+
+const parseFormattedNumber = (str) => {
+  return Number(str.toString().replace(/,/g, ""));
+};
+
 export default function App() {
-  const [growthMode, setGrowthMode] = useState("conservative");
-
-  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-  const labelMap = {
-    currency: "Currency",
-    currentAge: "Your Current Age",
-    desiredFIREAge: "Target Age for FIRE",
-    desiredCoastAge: "Target Age for Coast FIRE",
-    monthlyExpense: "Monthly Living Expenses (Today)",
-    inflation: "Expected Inflation Rate (%)",
-    startMonth: "Projection Start Month",
-    startYear: "Projection Start Year",
-    currentNetWorth: "Current Retirement Corpus",
-    sip: "Monthly Investment Contribution",
-    projectionYears: "Projection Duration (Years)",
-    desiredConservativeCAGR: "Conservative Growth Rate (%)",
-    desiredAggressiveCAGR: "Aggressive Growth Rate (%)"
-  };
-
   const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
   const defaultInputs = {
     currency: "INR",
     currentAge: 40,
@@ -29,8 +41,8 @@ export default function App() {
     desiredCoastAge: 45,
     monthlyExpense: 100000,
     inflation: 6,
-    startMonth: now.getMonth() + 1,
-    startYear: now.getFullYear(),
+    startMonth: currentMonth,
+    startYear: currentYear,
     currentNetWorth: 5000000,
     sip: 100000,
     projectionYears: 20,
@@ -38,31 +50,29 @@ export default function App() {
     desiredAggressiveCAGR: 20,
   };
 
-  const [inputs, setInputs] = useState(() =>
-    Object.fromEntries(
-      Object.entries(defaultInputs).map(([k, v]) => {
-        const stored = localStorage.getItem(k);
-        const parsed = stored ? JSON.parse(stored) : v;
-        return [k, parsed];
-      })
-    )
-  );
+  const [inputs, setInputs] = useState(() => {
+    return Object.keys(defaultInputs).reduce((a,k)=> {
+      a[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
+      return a;
+    }, {});
+  });
 
   const [results, setResults] = useState(null);
 
   useEffect(() => {
-    Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
+    Object.entries(inputs).forEach(([k,v]) => localStorage.setItem(k, JSON.stringify(v)));
     calculate();
   }, [inputs]);
 
   useEffect(() => {
-    alert(`📢 Disclaimer:
-This tool offers rough projections — not guarantees. Use it at your own discretion.
-If you find it helpful, spread the word and Happy Retirement! 🔥`);
+    alert(
+`📢 Disclaimer:
+This tool offers rough projections — not guarantees. Use it at your own discretion. The creator is not responsible for any anomalies.
+If you find it helpful, spread the love and good luck on your FIRE journey! 🔥`
+    );
   }, []);
 
-  const update = (k, v) =>
-    setInputs(prev => ({ ...prev, [k]: isNaN(v) ? v : Number(v) }));
+  const update = (k,v) => setInputs(prev => ({ ...prev, [k]: isNaN(v)? v : Number(v) }));
 
   const calculate = () => {
     const {
@@ -76,152 +86,178 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`);
     let exp = monthlyExpense * 12;
     for (let i = 0; i <= projectionYears; i++) {
       yearlyExpenses[startYear + i] = exp;
-      exp *= 1 + inflation / 100;
+      exp *= 1 + inflation/100;
     }
 
-    const expAtFIRE = yearlyExpenses[startYear + (desiredFIREAge - currentAge)];
+    const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
+    const expAtFIRE = yearlyExpenses[targetYearFIRE];
     const leanTarget = expAtFIRE * 15;
     const fireTarget = expAtFIRE * 25;
     const fatTarget = expAtFIRE * 40;
-    const coastFuture = monthlyExpense * 12 * 25 *
-      Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
-    const coastTarget = coastFuture *
-      Math.pow(1 + desiredConservativeCAGR / 100, -(desiredFIREAge - desiredCoastAge));
+    const coastFuture = (monthlyExpense*12)*25 * Math.pow(1 + inflation/100, desiredFIREAge - currentAge);
+    const coastTarget = coastFuture / Math.pow(1 + desiredConservativeCAGR/100, desiredFIREAge - desiredCoastAge);
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
     const project = (rate) => {
       let port = currentNetWorth;
-      const mr = rate / 12 / 100;
-      let y = startYear, m = startMonth - 1;
-      const totals = {};
+      const monthlyRate = rate / 12 / 100;
+      let year = startYear, m = startMonth - 1;
+      const yearlyTotals = {};
       for (let i = 0; i < projectionYears * 12; i++) {
-        port = port * (1 + mr) + sip;
+        port = port*(1+monthlyRate) + sip;
         m++;
-        if (m === 12) { m = 0; y++; }
-        if ((i + 1) % 12 === 0 || i === projectionYears * 12 - 1) {
-          totals[y] = port;
+        if (m >= 12) { m = 0; year++; }
+        if ((i + 1) % 12 === 0 || i === projectionYears*12 - 1) {
+          yearlyTotals[year] = port;
         }
       }
-      return totals;
+      return yearlyTotals;
     };
 
     setResults({
       yearlyExpenses,
       targets,
       cons: project(desiredConservativeCAGR),
-      aggr: project(desiredAggressiveCAGR),
+      aggr: project(desiredAggressiveCAGR)
     });
   };
 
-  const fmt = (v) => {
-    const cur = inputs.currency;
-    const sym = cur === "INR" ? "₹" : "$";
-    if (cur === "INR") {
-      if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
-      if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
-      return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-    } else {
-      if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
-      if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
-      return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-    }
-  };
+ const fmt = (v) => {
+  const cur = inputs.currency;
+  const sym = cur === "INR" ? "₹" : "$";
+
+  if (cur === "INR") {
+    if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
+    if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
+    return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  } else {
+    if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
+    if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
+    return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  }
+};
 
   const calcFIRE = () => {
-    return Object.entries(results.targets).map(([key, tgt]) => {
-      const age = inputs.desiredFIREAge;
-      const year = inputs.startYear + (age - inputs.currentAge);
-      const gap = tgt - inputs.currentNetWorth;
-      const needed = gap <= 0 ? "✅ Done" : `${((Math.pow(tgt / inputs.currentNetWorth, 1 / (age - inputs.currentAge)) - 1) * 100).toFixed(2)}%`;
-      return { key, tgt, age, year, gap, need: needed };
+    const now = inputs.currentNetWorth;
+    const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge;
+    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
+    const data = [
+      ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
+      ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
+      ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
+      ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
+    ];
+    return data.map(([label,tgt,age]) => {
+      const gap = now - tgt;
+      const need = gap>=0 ? "Achieved ✅" : `${((Math.pow(tgt/now,1/yearsToFIRE)-1)*100).toFixed(1)}%`;
+      return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
   };
 
-  const calcFutureFIRE = () => {
-    const portGrowth = growthMode === "aggressive" ? results.aggr : results.cons;
-    return Object.entries(results.targets).map(([key, tgt]) => {
-      const found = Object.entries(portGrowth).find(([, v]) => v >= tgt);
-      if (!found) return { label: key, target: tgt, age: "-", year: "-", note: "🚧 Not in range" };
-      const y = +found[0];
-      const a = inputs.currentAge + (y - inputs.startYear);
-      return { label: key, target: tgt, year: y, age: a };
-    });
-  };
-
-  if (!results) return <div className="p-6">Loading…</div>;
+  if (!results) return null;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
-      <h1 className="text-center text-3xl font-bold">🔥 FIRE Tracker 🔥</h1>
+      <h1 className="text-center text-3xl font-bold">🔥 The Beggar Bowl’s FIRE Tracker 🔥</h1>
 
-      {/* FIRE Progress */}
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
+        <strong>FIRE Milestone Descriptions</strong>
+        <ul className="ml-6 list-disc mt-2">
+          <li>🏋️‍♂️ Lean FIRE – Minimal lifestyle</li>
+          <li>🦈 Coast FIRE – Stop investing, work for expenses</li>
+          <li>🔥 FIRE – Comfortable standard of living</li>
+          <li>🐋 Fat FIRE – Luxurious lifestyle</li>
+        </ul>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Object.entries(defaultInputs).map(([k]) => (
+          <div key={k}>
+            <label className="block text-sm font-medium">
+              {labelMap[k]}
+            </label>
+            {(k==="currency"||k==="startMonth") ?
+              <select
+                value={inputs[k]}
+                onChange={e => update(k, e.target.value)}
+                className="mt-1 block w-full border rounded px-2 py-1">
+                {k==="currency" ?
+                  <><option value="INR">INR</option><option value="USD">USD</option></>
+                :
+                  monthNames.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
+              </select>
+            :
+              <input
+                type="text"
+                value={formatNumberWithCommas(inputs[k], inputs.currency)}
+                onChange={e => update(k, parseFormattedNumber(e.target.value))}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              />
+
+            }
+          </div>
+        ))}
+      </div>
+
+      {/* FIRE Progress Table */}
       <div className="bg-gray-100 p-4 rounded">
-        <h2 className="font-semibold text-lg">🔥 FIRE Progress (current net worth)</h2>
-        <table className="table-auto w-full text-center text-sm mt-2 border">
-          <thead>
+        <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current net worth)</h2>
+        <table className="w-full text-center text-sm mt-2 border">
+          <thead className="bg-gray-200">
             <tr>
-              <th>Milestone</th><th>Target</th><th>Age / Year</th><th>Gap/Surplus</th><th>Required CAGR</th>
+              <th className="border px-2 py-1">Milestone</th>
+              <th className="border px-2 py-1">Target</th>
+              <th className="border px-2 py-1">Target Age / Year</th>
+              <th className="border px-2 py-1">Gap / Surplus</th>
+              <th className="border px-2 py-1">Required CAGR</th>
             </tr>
           </thead>
           <tbody>
-            {calcFIRE().map((r, i) => (
+            {calcFIRE().map((r,i)=>
               <tr key={i}>
-                <td>{r.key}</td>
-                <td>{fmt(r.tgt)}</td>
-                <td>{r.age} / {r.year}</td>
-                <td className={r.gap <= 0 ? "text-green-600" : "text-red-600"}>
+                <td className="border px-2 py-1 text-lg">{r.label}</td>
+                <td className="border px-2 py-1">{fmt(r.tgt)}</td>
+                <td className="border px-2 py-1">{r.age} / {r.year}</td>
+                <td className={`border px-2 py-1 ${r.gap>=0 ? "text-green-600" : "text-red-600"}`}>
                   {fmt(Math.abs(r.gap))}
                 </td>
-                <td>{r.need}</td>
+                <td className="border px-2 py-1">{r.need}</td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Growth Mode Switch */}
-      <div className="flex items-center gap-4">
-        <label>Growth Mode:</label>
-        <select value={growthMode} onChange={e => setGrowthMode(e.target.value)}>
-          <option value="conservative">Conservative ({inputs.desiredConservativeCAGR}%)</option>
-          <option value="aggressive">Aggressive ({inputs.desiredAggressiveCAGR}%)</option>
-        </select>
-      </div>
-
-      {/* Projected Milestones */}
-      <div className="bg-green-50 p-4 rounded">
-        <h2 className="font-semibold">📈 Projected Milestones (with SIP)</h2>
-        <table className="table-auto w-full text-center text-sm mt-2 border">
-          <thead>
-            <tr><th>Milestone</th><th>Target</th><th>By Age / Year</th></tr>
-          </thead>
-          <tbody>
-            {calcFutureFIRE().map((r, i) => (
-              <tr key={i}>
-                <td>{r.label}</td>
-                <td>{fmt(r.target)}</td>
-                <td>{r.age !== "-" ? `${r.age} / ${r.year}` : r.note}</td>
-              </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Projection Summary */}
-      <div className="bg-blue-50 p-4 rounded">
-        <h2 className="font-semibold">📅 Projection Summary ({growthMode === "aggressive" ? "Aggressive" : "Conservative"} Growth)</h2>
-        <table className="table-auto w-full text-center text-sm mt-2 border">
-          <thead>
-            <tr><th>Year</th><th>Portfolio Value</th></tr>
+      <div>
+        <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
+        <table className="w-full text-sm mt-2 text-center border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="border px-2 py-1">Year</th>
+              <th className="border px-2 py-1">Expenses</th>
+              <th className="border px-2 py-1">Conservative</th>
+              <th className="border px-2 py-1">Aggressive</th>
+              <th className="border px-2 py-1">Status</th>
+            </tr>
           </thead>
           <tbody>
-            {Object.entries(growthMode === "aggressive" ? results.aggr : results.cons).map(([year, value]) => (
-              <tr key={year}>
-                <td>{year}</td>
-                <td>{fmt(value)}</td>
+            {Object.entries(results.cons).map(([yr,val])=>
+              <tr key={yr}>
+                <td className="border px-2 py-1">{yr}</td>
+                <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr]||0)}</td>
+                <td className="border px-2 py-1">{fmt(val)}</td>
+                <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
+                <td className="border px-2 py-1 text-lg">
+                  { val>=results.targets.fatTarget ? fireIcons.fat
+                    : val>=results.targets.fireTarget ? fireIcons.fire
+                    : val>=results.targets.coastTarget ? fireIcons.coast
+                    : val>=results.targets.leanTarget ? fireIcons.lean
+                    : "🧭 Keep going!" }
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
