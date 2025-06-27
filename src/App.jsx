@@ -1,185 +1,158 @@
-import React, { useState, useEffect } from "react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from "recharts";
-
-const formatCurrency = (value, currency) => {
-  const symbol = currency === "INR" ? "₹" : "$";
-  return symbol + value.toLocaleString();
-};
+import { useState, useEffect } from "react";
 
 export default function App() {
-  const [monthlyExpense, setMonthlyExpense] = useState(105000);
-  const [currentAge, setCurrentAge] = useState(42);
-  const [desiredFIREAge, setDesiredFIREAge] = useState(51);
-  const [desiredCoastAge, setDesiredCoastAge] = useState(47);
-  const [inflation, setInflation] = useState(6);
-  const [initial, setInitial] = useState(12873744);
-  const [sip, setSip] = useState(0);
-  const [conservative, setConservative] = useState(8);
-  const [aggressive, setAggressive] = useState(12);
-  const [currency, setCurrency] = useState("INR");
-  const [showChart, setShowChart] = useState(false);
+  const defaultInputs = {
+    initial: 500000,
+    sip: 10000,
+    conservative: 8,
+    aggressive: 12,
+    startMonth: 6,
+    startYear: new Date().getFullYear(),
+    projectionYears: 10,
+    currency: "INR",
+    currentAge: 42,
+    desiredFIREAge: 47,
+    desiredCoastAge: 45,
+    inflation: 6,
+    monthlyExpense: 105000,
+  };
+
+  const [inputs, setInputs] = useState(() => {
+    const stored = Object.keys(defaultInputs).reduce((acc, key) => {
+      acc[key] = JSON.parse(localStorage.getItem(key)) ?? defaultInputs[key];
+      return acc;
+    }, {});
+    return stored;
+  });
+
   const [results, setResults] = useState(null);
 
   useEffect(() => {
+    Object.entries(inputs).forEach(([key, value]) =>
+      localStorage.setItem(key, JSON.stringify(value))
+    );
     calculate();
-  }, [monthlyExpense, currentAge, desiredFIREAge, desiredCoastAge, inflation, initial, sip, conservative, aggressive, currency]);
+  }, [inputs]);
 
-  const calculate = () => {
-    if (desiredCoastAge >= desiredFIREAge) {
-      setResults(null);
-      return;
-    }
-
-    const yearlyToday = monthlyExpense * 12;
-    const yearsToFIRE = desiredFIREAge - currentAge;
-    const yearlyAtFIRE = yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
-
-    const lean = yearlyAtFIRE * 15;
-    const fire = yearlyAtFIRE * 25;
-    const fat = yearlyAtFIRE * 40;
-
-    const yearsToCoast = desiredCoastAge - currentAge;
-    let coast;
-    if (sip === 0) {
-      coast = yearlyAtFIRE * 18;
-    } else {
-      const rateM = conservative / 100 / 12;
-      const totalM = (desiredCoastAge - currentAge) * 12;
-      const fv = initial * Math.pow(1 + rateM, totalM) + sip * (Math.pow(1 + rateM, totalM) - 1) / rateM * (1 + rateM);
-      coast = fv / Math.pow(1 + aggressive / 100, (desiredFIREAge - desiredCoastAge));
-    }
-
-    // Now simulate yearly portfolio
-    const consYearly = {};
-    const aggrYearly = {};
-    const chartData = [];
-    let portCons = initial;
-    let portAggr = initial;
-    let mRateC = conservative / 100 / 12, mRateA = aggressive / 100 / 12;
-    const totalMonths = yearsToFIRE * 12;
-    for (let i = 1; i <= totalMonths; i++) {
-      portCons = portCons * (1 + mRateC) + sip;
-      portAggr = portAggr * (1 + mRateA) + sip;
-      if (i % 12 === 0) {
-        const year = currentAge + i/12;
-        consYearly[year] = portCons;
-        aggrYearly[year] = portAggr;
-        chartData.push({ year, Conservative: portCons, Aggressive: portAggr });
-      }
-    }
-
-    setResults({ cons: consYearly, aggr: aggrYearly, targets: { lean, coast, fire, fat }, chartData });
+  const updateInput = (key, value) => {
+    setInputs((prev) => ({ ...prev, [key]: Number(value) }));
   };
 
-  const getFIREColor = (value, targets) => {
-    if (value >= targets.fat) return "bg-cyan-200";
-    if (value >= targets.fire) return "bg-green-300";
-    if (value >= targets.coast) return "bg-sky-300";
-    if (value >= targets.lean) return "bg-yellow-200";
-    return "";
+  const calculate = () => {
+    const { sip, initial, startMonth, startYear, projectionYears, conservative, aggressive, currentAge, desiredFIREAge, desiredCoastAge, monthlyExpense, inflation } = inputs;
+    const totalMonths = projectionYears * 12;
+    const yearsToFIRE = desiredFIREAge - currentAge;
+    const yearsToCoast = desiredCoastAge - currentAge;
+    const yearlyToday = monthlyExpense * 12;
+    const yearlyRetirement = yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
+    const leanTarget = yearlyRetirement * 15;
+    const fireTarget = yearlyRetirement * 25;
+    const fatTarget = yearlyRetirement * 40;
+
+    const coastFutureValue = yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
+    const coastTarget = coastFutureValue / Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
+
+    const targets = { lean: leanTarget, coast: coastTarget, fire: fireTarget, fat: fatTarget };
+
+    const project = (rate) => {
+      let portfolio = initial;
+      let monthlyRate = rate / 12 / 100;
+      let yearlyTotals = {};
+      let year = startYear;
+      let month = startMonth - 1;
+
+      for (let i = 0; i < totalMonths; i++) {
+        portfolio = portfolio * (1 + monthlyRate) + sip;
+        month++;
+        if (month >= 12) {
+          month = 0;
+          year++;
+        }
+        if ((i + 1) % 12 === 0 || i === totalMonths - 1) {
+          yearlyTotals[year] = portfolio;
+        }
+      }
+      return yearlyTotals;
+    };
+
+    const cons = project(conservative);
+    const aggr = project(aggressive);
+
+    setResults({ cons, aggr, targets });
+  };
+
+  const formatCurrency = (val) => {
+    const { currency } = inputs;
+    const locales = currency === "INR" ? "en-IN" : "en-US";
+    const symbol = currency === "INR" ? "₹" : "$";
+    return `${symbol}${Intl.NumberFormat(locales, { maximumFractionDigits: 0 }).format(val)}`;
+  };
+
+  const getColor = (val, t) => {
+    if (val >= t.fat) return "bg-cyan-300";
+    if (val >= t.fire) return "bg-green-300";
+    if (val >= t.coast) return "bg-blue-300";
+    if (val >= t.lean) return "bg-yellow-200";
+    return "bg-white";
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif", maxWidth: 800, margin: "auto" }}>
-      <h1>The Beggar Bowl: FIRE Tracker</h1>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {[
-          { label: "Monthly Expenses", state: monthlyExpense, setter: setMonthlyExpense },
-          { label: "Current Age", state: currentAge, setter: setCurrentAge },
-          { label: "FIRE Age", state: desiredFIREAge, setter: setDesiredFIREAge },
-          { label: "Coast FIRE Age", state: desiredCoastAge, setter: setDesiredCoastAge },
-          { label: "Inflation %", state: inflation, setter: setInflation },
-          { label: "Initial Portfolio", state: initial, setter: setInitial },
-          { label: "Monthly SIP", state: sip, setter: setSip },
-          { label: "Conservative %", state: conservative, setter: setConservative },
-          { label: "Aggressive %", state: aggressive, setter: setAggressive },
-        ].map((fld, idx) => (
-          <div key={idx}>
-            <label style={{ fontSize: 12 }}>{fld.label}</label><br/>
+    <div className="p-6 max-w-5xl mx-auto space-y-6 font-sans">
+      <h1 className="text-2xl font-bold">🔥 The Beggar Bowl: FIRE Tracker</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {Object.entries(defaultInputs).map(([key, def]) => (
+          <div key={key} className="space-y-1">
+            <label className="text-sm font-medium capitalize">{key.replace(/([A-Z])/g, " $1")}</label>
             <input
               type="number"
-              value={fld.state}
-              onChange={e => fld.setter(+e.target.value)}
-              style={{ width: "100%" }}
+              className="w-full px-2 py-1 border rounded"
+              value={inputs[key]}
+              onChange={(e) => updateInput(key, e.target.value)}
             />
           </div>
         ))}
-        <div>
-          <label style={{ fontSize: 12 }}>Currency</label><br/>
-          <select value={currency} onChange={e => setCurrency(e.target.value)} style={{ width: "100%" }}>
-            <option value="INR">₹ INR</option>
-            <option value="USD">$ USD</option>
-          </select>
-        </div>
       </div>
 
-      {results ? (
+      {results && (
         <>
-          <div style={{ marginTop: 20 }}>
-            <label><input type="checkbox" checked={showChart} onChange={() => setShowChart(!showChart)} /> Show Chart</label>
-          </div>
-
-          <div style={{ marginTop: 20 }}>
-            <div style={{ display: "flex", gap: "10px" }}>
-              {["Lean FIRE", "Coast FIRE", "FIRE", "Fat FIRE"].map(label => (
-                <div key={label} style={{ display: "flex", alignItems: "center", fontSize: 14 }}>
-                  <span style={{
-                    display: "inline-block", width: 12, height: 12,
-                    backgroundColor: label === "Lean FIRE" ? "#FEF3C7" :
-                                     label === "Coast FIRE" ? "#E0F2FE" :
-                                     label === "FIRE" ? "#BBF7D0" :
-                                     "#CFFAFE",
-                    marginRight: 4
-                  }} />
-                  {label}
-                </div>
-              ))}
-            </div>
-            <table border="1" width="100%" cellPadding="4" style={{ marginTop: 10, borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#f3f3f3" }}>
-                  <th>Age</th><th>Conservative</th><th>Aggressive</th>
+          <div>
+            <h2 className="text-lg font-semibold mt-6">Projection Summary</h2>
+            <table className="w-full mt-2 text-sm border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border px-2 py-1">Year</th>
+                  <th className="border px-2 py-1">Conservative</th>
+                  <th className="border px-2 py-1">Aggressive</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.keys(results.cons).map(age => (
-                  <tr key={age}>
-                    <td>{age}</td>
-                    <td style={{ backgroundColor: getFIREColor(results.cons[age], results.targets) }}>
-                      {formatCurrency(results.cons[age], currency)}
+                {Object.keys(results.cons).map((year) => (
+                  <tr key={year}>
+                    <td className="border px-2 py-1">{year}</td>
+                    <td className={`border px-2 py-1 ${getColor(results.cons[year], results.targets)}`}>
+                      {formatCurrency(results.cons[year])}
                     </td>
-                    <td style={{ backgroundColor: getFIREColor(results.aggr[age], results.targets) }}>
-                      {formatCurrency(results.aggr[age], currency)}
+                    <td className={`border px-2 py-1 ${getColor(results.aggr[year], results.targets)}`}>
+                      {formatCurrency(results.aggr[year])}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div style={{ marginTop: 10, fontSize: 12, color: "#555" }}>
-              <div><strong>Lean FIRE</strong>: basic needs covered</div>
-              <div><strong>Coast FIRE</strong>: no more saving needed</div>
-              <div><strong>FIRE</strong>: comfortable lifestyle</div>
-              <div><strong>Fat FIRE</strong>: luxury lifestyle</div>
+
+            <div className="mt-4 text-sm text-gray-700">
+              <strong>Legend:</strong>
+              <div className="flex gap-4 mt-2">
+                <span className="bg-yellow-200 px-2 py-1 rounded">Lean FIRE</span>
+                <span className="bg-blue-300 px-2 py-1 rounded">Coast FIRE</span>
+                <span className="bg-green-300 px-2 py-1 rounded">FIRE</span>
+                <span className="bg-cyan-300 px-2 py-1 rounded">FAT FIRE</span>
+              </div>
+              <p className="mt-2 italic">* Coast FIRE assumes stopping contributions and 10% return until FIRE age.</p>
             </div>
           </div>
-
-          {showChart && (
-            <div style={{ height: 300, marginTop: 20 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={results.chartData}>
-                  <XAxis dataKey="year" />
-                  <YAxis tickFormatter={val => formatCurrency(val, currency)} />
-                  <Tooltip formatter={val => formatCurrency(val, currency)} />
-                  <Legend />
-                  <Line type="monotone" dataKey="Conservative" stroke="#8884d8" />
-                  <Line type="monotone" dataKey="Aggressive" stroke="#82ca9d" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
         </>
-      ) : (
-        <div style={{ marginTop: 20, color: "red" }}>⚠️ Make sure Coast FIRE Age is less than FIRE Age.</div>
       )}
     </div>
   );
