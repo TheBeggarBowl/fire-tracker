@@ -1,16 +1,6 @@
 import { useState, useEffect } from "react";
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-];
-
-const FIRE_DESCRIPTIONS = {
-  lean: "Lean FIRE: Basic living expenses, minimal lifestyle",
-  coast: "Coast FIRE: Invested enough to retire at traditional age without further saving (assumes 10% return)",
-  fire: "FIRE: Comfortable retirement with standard lifestyle",
-  fat: "Fat FIRE: Luxurious retirement with high spending"
-};
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function App() {
   const defaultInputs = {
@@ -18,7 +8,7 @@ export default function App() {
     sip: 10000,
     conservative: 8,
     aggressive: 12,
-    startMonth: "Jun",
+    startMonth: 6,
     startYear: new Date().getFullYear(),
     projectionYears: 10,
     currency: "INR",
@@ -47,19 +37,28 @@ export default function App() {
   }, [inputs]);
 
   const updateInput = (key, value) => {
-    const isNumber = key !== "currency" && key !== "startMonth";
-    setInputs((prev) => ({ ...prev, [key]: isNumber ? Number(value) : value }));
+    setInputs((prev) => ({ ...prev, [key]: isNaN(value) ? value : Number(value) }));
   };
 
   const calculate = () => {
     const {
-      sip, initial, startMonth, startYear, projectionYears,
-      conservative, aggressive, currentAge, desiredFIREAge,
-      desiredCoastAge, monthlyExpense, inflation
+      sip,
+      initial,
+      startMonth,
+      startYear,
+      projectionYears,
+      conservative,
+      aggressive,
+      currentAge,
+      desiredFIREAge,
+      desiredCoastAge,
+      monthlyExpense,
+      inflation,
     } = inputs;
 
     const totalMonths = projectionYears * 12;
     const yearsToFIRE = desiredFIREAge - currentAge;
+    const yearsToCoast = desiredCoastAge - currentAge;
     const yearlyToday = monthlyExpense * 12;
     const yearlyRetirement = yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
     const leanTarget = yearlyRetirement * 15;
@@ -76,33 +75,37 @@ export default function App() {
       let monthlyRate = rate / 12 / 100;
       let yearlyTotals = {};
       let year = startYear;
-      let month = MONTHS.indexOf(startMonth);
-
+      let month = startMonth - 1;
+      let currentYear = new Date().getFullYear();
       for (let i = 0; i < totalMonths; i++) {
         portfolio = portfolio * (1 + monthlyRate) + sip;
-        if (!yearlyTotals[year]) yearlyTotals[year] = 0;
-        yearlyTotals[year] = portfolio;
         month++;
         if (month >= 12) {
           month = 0;
           year++;
         }
+        if ((i + 1) % 12 === 0 || i === totalMonths - 1) {
+          if (year >= startYear) {
+            yearlyTotals[year] = portfolio;
+          }
+        }
       }
       return yearlyTotals;
     };
 
-    setResults({
-      cons: project(conservative),
-      aggr: project(aggressive),
-      targets
-    });
+    const cons = project(conservative);
+    const aggr = project(aggressive);
+
+    setResults({ cons, aggr, targets });
   };
 
   const formatCurrency = (val) => {
     const currency = inputs?.currency || "INR";
     const locales = currency === "INR" ? "en-IN" : "en-US";
     const symbol = currency === "INR" ? "₹" : "$";
-    return `${symbol}${Intl.NumberFormat(locales, { maximumFractionDigits: 0 }).format(val)}`;
+    return `${symbol}${Intl.NumberFormat(locales, {
+      maximumFractionDigits: 0,
+    }).format(val)}`;
   };
 
   const getColor = (val, t) => {
@@ -113,33 +116,59 @@ export default function App() {
     return "bg-white";
   };
 
+  const fireProgress = () => {
+    const networth = inputs.initial;
+    const { lean, coast, fire, fat } = results.targets;
+    if (networth >= fat) return "Fat FIRE achieved 🎉";
+    if (networth >= fire) return "FIRE achieved 💰";
+    if (networth >= coast) return "Coast FIRE achieved 🏖️";
+    if (networth >= lean) return "Lean FIRE achieved 🔥";
+    return "FIRE goal in progress...";
+  };
+
+  const labelMap = {
+    initial: "Current Net Worth",
+    sip: "Monthly Investment",
+    conservative: "Desired Conservative Growth (%)",
+    aggressive: "Desired Aggressive Growth (%)",
+    startMonth: "Start Month",
+    startYear: "Start Year",
+    projectionYears: "Projection Period (Years)",
+    currency: "Currency (INR/USD)",
+    currentAge: "Current Age",
+    desiredFIREAge: "Desired FIRE Age",
+    desiredCoastAge: "Desired Coast FIRE Age",
+    inflation: "Inflation (%)",
+    monthlyExpense: "Monthly Expenses",
+  };
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 font-sans">
+    <div className="p-6 max-w-6xl mx-auto space-y-6 font-sans">
       <h1 className="text-2xl font-bold">🔥 The Beggar Bowl: FIRE Tracker</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {Object.entries(defaultInputs).map(([key, def]) => (
           <div key={key} className="space-y-1">
-            <label className="text-sm font-medium capitalize">
-              {key.replace(/([A-Z])/g, " $1")}
-            </label>
+            <label className="text-sm font-medium">{labelMap[key]}</label>
             {key === "currency" ? (
               <select
-                className="w-full px-2 py-1 border rounded"
                 value={inputs[key]}
                 onChange={(e) => updateInput(key, e.target.value)}
+                className="w-full px-2 py-1 border rounded"
               >
-                <option value="INR">INR</option>
-                <option value="USD">USD</option>
+                <option value="INR">₹ INR</option>
+                <option value="USD">$ USD</option>
               </select>
             ) : key === "startMonth" ? (
               <select
-                className="w-full px-2 py-1 border rounded"
                 value={inputs[key]}
                 onChange={(e) => updateInput(key, e.target.value)}
+                className="w-full px-2 py-1 border rounded"
               >
-                {MONTHS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                {monthNames.map((month, idx) => (
+                  <option key={idx + 1} value={idx + 1}>
+                    {month}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -156,30 +185,22 @@ export default function App() {
 
       {results && (
         <>
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-2">FIRE Milestone Descriptions</h2>
-            <ul className="text-sm text-gray-700 space-y-1">
-              {Object.entries(FIRE_DESCRIPTIONS).map(([key, text]) => (
-                <li key={key}>
-                  <strong className="capitalize">{key}:</strong> {text}
-                </li>
-              ))}
+          <div className="mt-6 p-4 bg-gray-100 rounded border">
+            <h2 className="font-semibold text-lg">🔥 FIRE Progress: {fireProgress()}</h2>
+          </div>
+
+          <div className="mt-4 text-sm text-gray-700 bg-white border rounded p-4">
+            <strong>FIRE Milestone Descriptions</strong>
+            <ul className="list-disc ml-6 mt-2 space-y-1">
+              <li title="Basic living expenses, minimal lifestyle">Lean FIRE: Basic living expenses, minimal lifestyle</li>
+              <li title="Invested enough to retire at desired age without further saving">Coast FIRE: Enough to retire at desired age (assumes 10% return)</li>
+              <li title="Comfortable retirement with standard lifestyle">FIRE: Comfortable retirement</li>
+              <li title="Luxurious retirement with high spending">Fat FIRE: Luxurious retirement</li>
             </ul>
           </div>
 
-          <div className="mt-6 text-sm text-gray-700">
-            <strong>Legend:</strong>
-            <div className="flex gap-4 mt-2">
-              <span className="bg-yellow-200 px-2 py-1 rounded">Lean FIRE</span>
-              <span className="bg-blue-300 px-2 py-1 rounded">Coast FIRE</span>
-              <span className="bg-green-300 px-2 py-1 rounded">FIRE</span>
-              <span className="bg-cyan-300 px-2 py-1 rounded">FAT FIRE</span>
-            </div>
-            <p className="mt-2 italic">* Coast FIRE assumes stopping contributions and 10% return until FIRE age.</p>
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold mt-6">Projection Summary</h2>
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold">Projection Summary</h2>
             <table className="w-full mt-2 text-sm border">
               <thead className="bg-gray-100">
                 <tr>
@@ -202,6 +223,10 @@ export default function App() {
                 ))}
               </tbody>
             </table>
+
+            <p className="mt-2 text-xs italic text-gray-500">
+              * Coast FIRE assumes stopping contributions and 10% annual return until FIRE age.
+            </p>
           </div>
         </>
       )}
