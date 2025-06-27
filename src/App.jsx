@@ -76,7 +76,6 @@ export default function App() {
       let yearlyTotals = {};
       let year = startYear;
       let month = startMonth - 1;
-      let currentYear = new Date().getFullYear();
       for (let i = 0; i < totalMonths; i++) {
         portfolio = portfolio * (1 + monthlyRate) + sip;
         month++;
@@ -84,7 +83,7 @@ export default function App() {
           month = 0;
           year++;
         }
-        if ((i + 1) % 12 === 0 || i === totalMonths - 1) {
+        if ((i + 1 + (startMonth - 1)) % 12 === 0 || i === totalMonths - 1) {
           if (year >= startYear) {
             yearlyTotals[year] = portfolio;
           }
@@ -117,12 +116,14 @@ export default function App() {
   };
 
   const fireProgress = () => {
-    const networth = inputs.initial;
+    if (!results) return "Calculating...";
+    const firstYear = Math.min(...Object.keys(results.cons));
+    const projectedNetworth = results.cons[firstYear];
     const { lean, coast, fire, fat } = results.targets;
-    if (networth >= fat) return "Fat FIRE achieved 🎉";
-    if (networth >= fire) return "FIRE achieved 💰";
-    if (networth >= coast) return "Coast FIRE achieved 🏖️";
-    if (networth >= lean) return "Lean FIRE achieved 🔥";
+    if (projectedNetworth >= fat) return "Fat FIRE achieved 🎉";
+    if (projectedNetworth >= fire) return "FIRE achieved 💰";
+    if (projectedNetworth >= coast) return "Coast FIRE achieved 🏖️";
+    if (projectedNetworth >= lean) return "Lean FIRE achieved 🔥";
     return "FIRE goal in progress...";
   };
 
@@ -184,50 +185,52 @@ export default function App() {
       </div>
 
       {results && (
-  <>
-    <div className="mt-6 p-4 bg-gray-100 rounded border">
-      <h2 className="font-semibold text-lg">🔥 FIRE Progress</h2>
-      <p className="text-sm mt-1">{fireProgress()}</p>
-    </div>
+        <>
+          <div className="mt-6 p-4 bg-gray-100 rounded border">
+            <h2 className="font-semibold text-lg">🔥 FIRE Progress</h2>
+            <p className="text-sm mt-1">{fireProgress()}</p>
+          </div>
 
-    <div className="mt-4 text-sm text-gray-800 bg-blue-50 border border-blue-200 rounded p-4">
-      <strong className="text-blue-900">FIRE Milestone Descriptions</strong>
-      <ul className="list-disc ml-6 mt-2 space-y-1">
-        <li><strong>Lean FIRE</strong>: Basic living expenses, minimal lifestyle</li>
-        <li><strong>Coast FIRE</strong>: You can stop investing and still retire comfortably at your desired age (assumes 10% growth)</li>
-        <li><strong>FIRE</strong>: Comfortable retirement with standard lifestyle</li>
-        <li><strong>Fat FIRE</strong>: Luxurious retirement with high-end spending</li>
-      </ul>
-    </div>
+          <div className="mt-4 text-sm text-gray-800 bg-blue-50 border border-blue-200 rounded p-4">
+            <strong className="text-blue-900">FIRE Milestone Descriptions</strong>
+            <ul className="list-disc ml-6 mt-2 space-y-1">
+              <li><strong>Lean FIRE</strong>: Basic living expenses, minimal lifestyle</li>
+              <li><strong>Coast FIRE</strong>: You can stop investing and still retire comfortably at your desired age (assumes 10% growth)</li>
+              <li><strong>FIRE</strong>: Comfortable retirement with standard lifestyle</li>
+              <li><strong>Fat FIRE</strong>: Luxurious retirement with high-end spending</li>
+            </ul>
+          </div>
 
-    <div className="mt-6">
-      <h2 className="text-lg font-semibold">Projection Summary</h2>
-      <table className="w-full mt-2 text-sm border">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="border px-2 py-1">Year</th>
-            <th className="border px-2 py-1">Conservative</th>
-            <th className="border px-2 py-1">Aggressive</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.keys(results.cons).map((year) => (
-            <tr key={year}>
-              <td className="border px-2 py-1">{year}</td>
-              <td className={`border px-2 py-1 ${getColor(results.cons[year], results.targets)}`}>
-                {formatCurrency(results.cons[year])}
-              </td>
-              <td className={`border px-2 py-1 ${getColor(results.aggr[year], results.targets)}`}>
-                {formatCurrency(results.aggr[year])}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <p className="mt-2 text-xs italic text-gray-500">
-        * Coast FIRE assumes stopping contributions and 10% annual return until FIRE age.
-      </p>
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold">Projection Summary</h2>
+            <table className="w-full mt-2 text-sm border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border px-2 py-1">Year</th>
+                  <th className="border px-2 py-1">Conservative</th>
+                  <th className="border px-2 py-1">Aggressive</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(results.cons).map((year) => (
+                  <tr key={year}>
+                    <td className="border px-2 py-1">{year}</td>
+                    <td className={`border px-2 py-1 ${getColor(results.cons[year], results.targets)}`}>
+                      {formatCurrency(results.cons[year])}
+                    </td>
+                    <td className={`border px-2 py-1 ${getColor(results.aggr[year], results.targets)}`}>
+                      {formatCurrency(results.aggr[year])}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs italic text-gray-500">
+              * Coast FIRE assumes stopping contributions and 10% annual return until FIRE age.
+            </p>
+          </div>
+        </>
+      )}
     </div>
-  </>
-)}
+  );
+}
