@@ -154,6 +154,35 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
       return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
   };
+const calcFutureFIRE = () => {
+  const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
+  const milestones = [
+    { key: "Lean FIRE", icon: "🏋️‍♂️", target: leanTarget },
+    { key: "Coast FIRE", icon: "🦈", target: coastTarget },
+    { key: "FIRE", icon: "🔥", target: fireTarget },
+    { key: "Fat FIRE", icon: "🐋", target: fatTarget },
+  ];
+
+  const data = [];
+  for (const { key, icon, target } of milestones) {
+    let yearFound = null;
+    for (const [yearStr, value] of Object.entries(results.cons)) {
+      const year = parseInt(yearStr);
+      if (value >= target) {
+        yearFound = year;
+        break;
+      }
+    }
+    if (yearFound) {
+      const age = inputs.currentAge + (yearFound - inputs.startYear);
+      data.push({ label: `${icon} ${key}`, target, year: yearFound, age });
+    } else {
+      data.push({ label: `${icon} ${key}`, target, year: "-", age: "-", note: "Not achieved" });
+    }
+  }
+
+  return data;
+};
 
   if (!results) return null;
 
@@ -245,6 +274,30 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
             {fmt(Math.abs(r.gap))}
           </td>
           <td className="border px-2 py-1">{r.need}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+<div className="bg-green-50 p-4 rounded mt-6">
+  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (with SIP)</h2>
+  <p className="text-xs text-gray-600 italic mb-2">
+    ✅ This table includes your monthly contributions and compound growth.
+  </p>
+  <table className="w-full text-center text-sm mt-2 border">
+    <thead className="bg-green-200">
+      <tr>
+        <th className="border px-2 py-1">Milestone</th>
+        <th className="border px-2 py-1">Target Corpus</th>
+        <th className="border px-2 py-1">Achieved By Age / Year</th>
+      </tr>
+    </thead>
+    <tbody>
+      {calcFutureFIRE().map((r, i) => (
+        <tr key={i}>
+          <td className="border px-2 py-1 font-medium">{r.label}</td>
+          <td className="border px-2 py-1">{fmt(r.target)}</td>
+          <td className="border px-2 py-1">{r.age !== "-" ? `${r.age} / ${r.year}` : r.note}</td>
         </tr>
       ))}
     </tbody>
