@@ -130,16 +130,16 @@ then woke up post-40 realizing financial freedom matters.\n\nUse at your own dis
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-8 font-sans">
       <h1 className="text-center text-3xl font-bold">
-        🔥 The Beggar Bowl's FIRE Tracker
+        🔥 FIRE Tracker 🔥
       </h1>
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
-          <li>🏋️ Lean FIRE: Basic living expenses</li>
-          <li>🦈 Coast FIRE: Stop investing, retire at FIRE age</li>
-          <li>🔥 FIRE: Comfortable retirement</li>
-          <li>🐋 Fat FIRE: Luxurious retirement</li>
+          <li>🏋️ Lean FIRE: Minimalist Lifestyle | Contented retirement </li>
+          <li>🦈 Stop Contributing to retirement savings | Still work through for day to day expenses until FIRE age </li>
+          <li>🔥 FIRE: Moderate Lifestyle | Comfortable retirement </li>
+          <li>🐋 Fat FIRE: Luxuirous Lifestyle | no financial worry </li>
         </ul>
       </div>
 
