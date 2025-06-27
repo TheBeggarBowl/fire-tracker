@@ -28,6 +28,7 @@ export default function App() {
   });
 
   const [results, setResults] = useState(null);
+  const [showDisclaimer, setShowDisclaimer] = useState(() => !localStorage.getItem("disclaimerSeen"));
 
   useEffect(() => {
     Object.entries(inputs).forEach(([key, value]) =>
@@ -36,76 +37,69 @@ export default function App() {
     calculate();
   }, [inputs]);
 
+  useEffect(() => {
+    if (!showDisclaimer) {
+      localStorage.setItem("disclaimerSeen", "true");
+    }
+  }, [showDisclaimer]);
+
   const updateInput = (key, value) => {
     setInputs((prev) => ({ ...prev, [key]: isNaN(value) ? value : Number(value) }));
   };
 
   const calculate = () => {
     const {
-      sip,
-      initial,
-      startMonth,
-      startYear,
-      projectionYears,
-      conservative,
-      aggressive,
-      currentAge,
-      desiredFIREAge,
-      desiredCoastAge,
-      monthlyExpense,
-      inflation,
+      sip, initial, startMonth, startYear, projectionYears,
+      conservative, aggressive, currentAge, desiredFIREAge,
+      desiredCoastAge, monthlyExpense, inflation,
     } = inputs;
 
     const totalMonths = projectionYears * 12;
     const yearsToFIRE = desiredFIREAge - currentAge;
     const yearsToCoast = desiredCoastAge - currentAge;
     const yearlyToday = monthlyExpense * 12;
+    const yearlyExpenses = Array.from({ length: projectionYears }, (_, i) =>
+      yearlyToday * Math.pow(1 + inflation / 100, i)
+    );
+
     const yearlyRetirement = yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
     const leanTarget = yearlyRetirement * 15;
     const fireTarget = yearlyRetirement * 25;
     const fatTarget = yearlyRetirement * 40;
 
     const coastFutureValue = yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
-    const coastTarget = coastFutureValue / Math.pow(1 + 10 / 100, desiredFIREAge - desiredCoastAge);
+    const coastTarget = coastFutureValue / Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
 
-    const targets = {
-      lean: { value: leanTarget, year: startYear + yearsToFIRE },
-      coast: { value: coastTarget, year: startYear + yearsToCoast },
-      fire: { value: fireTarget, year: startYear + yearsToFIRE },
-      fat: { value: fatTarget, year: startYear + yearsToFIRE },
-    };
+    const targets = { lean: leanTarget, coast: coastTarget, fire: fireTarget, fat: fatTarget };
 
     const project = (rate) => {
       let portfolio = initial;
       let monthlyRate = rate / 12 / 100;
       let yearlyTotals = {};
-      let expenses = {};
       let year = startYear;
       let month = startMonth - 1;
-      let expense = monthlyExpense * 12;
-
       for (let i = 0; i < totalMonths; i++) {
         portfolio = portfolio * (1 + monthlyRate) + sip;
         month++;
         if (month >= 12) {
           month = 0;
-          expenses[year] = expense;
-          yearlyTotals[year] = portfolio;
           year++;
-          expense *= 1 + inflation / 100;
+        }
+        if ((i + 1) % 12 === 0 || i === totalMonths - 1) {
+          yearlyTotals[year] = portfolio;
         }
       }
-      return { yearlyTotals, expenses };
+      return yearlyTotals;
     };
 
     const cons = project(conservative);
     const aggr = project(aggressive);
 
-    setResults({ cons: cons.yearlyTotals, aggr: aggr.yearlyTotals, expenses: cons.expenses, targets });
+    setResults({ cons, aggr, targets, yearlyExpenses });
   };
 
   const formatCurrency = (val) => {
-    const currency = inputs?.currency || "INR";
+    const currency = inputs.currency || "INR";
     const locales = currency === "INR" ? "en-IN" : "en-US";
     const symbol = currency === "INR" ? "₹" : "$";
     return `${symbol}${Intl.NumberFormat(locales, {
@@ -114,52 +108,68 @@ export default function App() {
   };
 
   const getColor = (val, t) => {
-    if (val >= t.fat.value) return "bg-cyan-300";
-    if (val >= t.fire.value) return "bg-green-300";
-    if (val >= t.coast.value) return "bg-blue-300";
-    if (val >= t.lean.value) return "bg-yellow-200";
+    if (val >= t.fat) return "bg-cyan-300";
+    if (val >= t.fire) return "bg-green-300";
+    if (val >= t.coast) return "bg-blue-300";
+    if (val >= t.lean) return "bg-yellow-200";
     return "bg-white";
   };
 
-  const fireProgress = () => {
-    const networth = results?.cons?.[inputs.startYear] ?? inputs.initial;
+  const getFIREStatusIcon = (val, t) => {
+    if (val >= t.fat) return "🐋 Fat FIRE";
+    if (val >= t.fire) return "🔥 FIRE";
+    if (val >= t.coast) return "🦈 Coast FIRE";
+    if (val >= t.lean) return "🏋️ Lean FIRE";
+    return "🚧 Not there yet...";
+  };
+
+  const fireProgressTable = () => {
+    const networth = inputs.initial;
     const { lean, coast, fire, fat } = results.targets;
 
-    const neededGrowthRate = (target) => {
-      const yearsLeft = target.year - inputs.startYear;
-      return (
-        100 *
-        (Math.pow(target.value / networth, 1 / yearsLeft) - 1)
-      ).toFixed(2);
-    };
-
-    const milestone = [fat, fire, coast, lean].find((t) => networth >= t.value);
-    const nextMilestone = [lean, coast, fire, fat].find((t) => networth < t.value);
+    const milestones = [
+      { label: "🏋️ Lean FIRE", target: lean },
+      { label: "🦈 Coast FIRE", target: coast },
+      { label: "🔥 FIRE", target: fire },
+      { label: "🐋 Fat FIRE", target: fat },
+    ];
 
     return (
-      <>
-        <p>
-          Current Net Worth: <strong>{formatCurrency(networth)}</strong>
-        </p>
-        {milestone ? (
-          <p className="mt-1">🎉 You have achieved <strong>{Object.keys(results.targets).find(key => results.targets[key] === milestone).toUpperCase()}</strong> milestone!</p>
-        ) : (
-          nextMilestone && (
-            <>
-              <p className="mt-1">Next target: <strong>{formatCurrency(nextMilestone.value)}</strong> by {nextMilestone.year}</p>
-              <p className="mt-1 text-sm text-gray-600">Required CAGR from now: <strong>{neededGrowthRate(nextMilestone)}%</strong></p>
-            </>
-          )
-        )}
-      </>
+      <table className="w-full mt-2 text-sm border bg-white rounded">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="border px-2 py-1">Milestone</th>
+            <th className="border px-2 py-1">Target</th>
+            <th className="border px-2 py-1">Target Year</th>
+            <th className="border px-2 py-1">Gap / Surplus</th>
+            <th className="border px-2 py-1">Required CAGR</th>
+          </tr>
+        </thead>
+        <tbody>
+          {milestones.map(({ label, target }) => {
+            const gap = target - networth;
+            const years = inputs.desiredFIREAge - inputs.currentAge;
+            const cagrNeeded = gap <= 0 ? 0 : (Math.pow(target / networth, 1 / years) - 1) * 100;
+            return (
+              <tr key={label}>
+                <td className="border px-2 py-1">{label}</td>
+                <td className="border px-2 py-1">{formatCurrency(target)}</td>
+                <td className="border px-2 py-1">{inputs.startYear + years}</td>
+                <td className="border px-2 py-1">{formatCurrency(gap)}</td>
+                <td className="border px-2 py-1">{gap <= 0 ? "Achieved 🎉" : `${cagrNeeded.toFixed(2)}%`}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     );
   };
 
   const labelMap = {
     initial: "Current Net Worth",
     sip: "Monthly Investment",
-    conservative: "Desired Conservative CAGR (in %)",
-    aggressive: "Desired Aggressive CAGR (in %)",
+    conservative: "Desired Conservative CAGR (%)",
+    aggressive: "Desired Aggressive CAGR (%)",
     startMonth: "Start Month",
     startYear: "Start Year",
     projectionYears: "Projection Period (Years)",
@@ -173,6 +183,32 @@ export default function App() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6 font-sans">
+      {showDisclaimer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 max-w-md rounded shadow space-y-4 text-sm">
+            <h2 className="text-lg font-bold">📢 Disclaimer</h2>
+            <p>
+              This tracker was built by someone who spent his 20s and 30s partying,
+              only to wake up after 40 and realize financial freedom was a better idea.
+            </p>
+            <p>
+              Use this tracker at your own discretion. These are mere projections for
+              planning. At least plan to fail — don't fail to plan!
+            </p>
+            <p>
+              Please don't blame the creator if your portfolio doesn’t perform like a unicorn startup.
+              If you like this tracker and find it useful, spread the word!
+            </p>
+            <button
+              onClick={() => setShowDisclaimer(false)}
+              className="bg-orange-500 text-white px-4 py-1 rounded hover:bg-orange-600"
+            >
+              Okay, got it!
+            </button>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold">🔥 The Beggar Bowl's FIRE Tracker</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -216,16 +252,16 @@ export default function App() {
         <>
           <div className="mt-6 p-4 bg-gray-100 rounded border">
             <h2 className="font-semibold text-lg">🔥 FIRE Progress</h2>
-            <div className="text-sm mt-1">{fireProgress()}</div>
+            {fireProgressTable()}
           </div>
 
           <div className="mt-4 text-sm text-gray-800 bg-blue-50 border border-blue-200 rounded p-4">
             <strong className="text-blue-900">FIRE Milestone Descriptions</strong>
             <ul className="list-disc ml-6 mt-2 space-y-1">
-              <li><strong>Lean FIRE</strong>: Basic living expenses, minimal lifestyle</li>
-              <li><strong>Coast FIRE</strong>: You can stop investing and still retire comfortably at your desired age <span className="text-gray-500 italic">(assumes 10% annual return until FIRE age)</span></li>
-              <li><strong>FIRE</strong>: Comfortable retirement with standard lifestyle</li>
-              <li><strong>Fat FIRE</strong>: Luxurious retirement with high-end spending</li>
+              <li><strong>🏋️ Lean FIRE</strong>: Basic living expenses, minimal lifestyle</li>
+              <li><strong>🦈 Coast FIRE</strong>: You can stop investing and still retire comfortably at your desired age <span className="text-gray-500 text-xs">(assumes 10% growth)</span></li>
+              <li><strong>🔥 FIRE</strong>: Comfortable retirement with standard lifestyle</li>
+              <li><strong>🐋 Fat FIRE</strong>: Luxurious retirement with high-end spending</li>
             </ul>
           </div>
 
@@ -238,19 +274,21 @@ export default function App() {
                   <th className="border px-2 py-1">Yearly Expenses</th>
                   <th className="border px-2 py-1">Conservative</th>
                   <th className="border px-2 py-1">Aggressive</th>
+                  <th className="border px-2 py-1">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.keys(results.cons).map((year) => (
+                {Object.keys(results.cons).map((year, idx) => (
                   <tr key={year}>
                     <td className="border px-2 py-1">{year}</td>
-                    <td className="border px-2 py-1 text-gray-600">{formatCurrency(results.expenses[year])}</td>
+                    <td className="border px-2 py-1">{formatCurrency(results.yearlyExpenses[idx])}</td>
                     <td className={`border px-2 py-1 ${getColor(results.cons[year], results.targets)}`}>
                       {formatCurrency(results.cons[year])}
                     </td>
                     <td className={`border px-2 py-1 ${getColor(results.aggr[year], results.targets)}`}>
                       {formatCurrency(results.aggr[year])}
                     </td>
+                    <td className="border px-2 py-1">{getFIREStatusIcon(results.cons[year], results.targets)}</td>
                   </tr>
                 ))}
               </tbody>
