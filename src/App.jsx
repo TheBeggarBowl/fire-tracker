@@ -201,33 +201,41 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
       </div>
 
       {/* FIRE Progress Table */}
-      <div className="bg-gray-100 p-4 rounded">
-        <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current net worth)</h2>
-        <table className="w-full text-center text-sm mt-2 border">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="border px-2 py-1">Milestone</th>
-              <th className="border px-2 py-1">Target</th>
-              <th className="border px-2 py-1">Target Age / Year</th>
-              <th className="border px-2 py-1">Gap / Surplus</th>
-              <th className="border px-2 py-1">Required CAGR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {calcFIRE().map((r,i)=>
-              <tr key={i}>
-                <td className="border px-2 py-1 text-lg">{r.label}</td>
-                <td className="border px-2 py-1">{fmt(r.tgt)}</td>
-                <td className="border px-2 py-1">{r.age} / {r.year}</td>
-                <td className={`border px-2 py-1 ${r.gap>=0 ? "text-green-600" : "text-red-600"}`}>
-                  {fmt(Math.abs(r.gap))}
-                </td>
-                <td className="border px-2 py-1">{r.need}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+<div className="bg-gray-100 p-4 rounded">
+  <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current net worth)</h2>
+  <p className="text-xs text-gray-600 italic mb-2">
+    🔎 This table considers only your <strong>current retirement corpus</strong> — monthly investments are not factored in here.
+  </p>
+  <table className="w-full text-center text-sm mt-2 border">
+    <thead className="bg-gray-200">
+      <tr>
+        <th className="border px-2 py-1">Milestone</th>
+        <th className="border px-2 py-1">Target</th>
+        <th className="border px-2 py-1">Target Age / Year</th>
+        <th className="border px-2 py-1">Gap / Surplus</th>
+        <th className="border px-2 py-1">Required CAGR</th>
+      </tr>
+    </thead>
+    <tbody>
+      {calcFIRE().map((r, i) => (
+        <tr key={i}>
+          <td className="border px-2 py-1 text-base font-semibold">
+            {r.label.includes("Lean") && <span className="text-lg">🏋️‍♂️ Lean</span>}
+            {r.label.includes("Coast") && <span className="text-lg">🦈 Coast</span>}
+            {r.label.includes("FIRE") && !r.label.includes("Fat") && <span className="text-lg">🔥 FIRE</span>}
+            {r.label.includes("Fat") && <span className="text-lg">🐋 Fat FIRE</span>}
+          </td>
+          <td className="border px-2 py-1">{fmt(r.tgt)}</td>
+          <td className="border px-2 py-1">{r.age} / {r.year}</td>
+          <td className={`border px-2 py-1 ${r.gap >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {fmt(Math.abs(r.gap))}
+          </td>
+          <td className="border px-2 py-1">{r.need}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 
       {/* Projection Summary */}
       <div>
@@ -249,13 +257,18 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr]||0)}</td>
                 <td className="border px-2 py-1">{fmt(val)}</td>
                 <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
-                <td className="border px-2 py-1 text-lg">
-                  { val>=results.targets.fatTarget ? fireIcons.fat
-                    : val>=results.targets.fireTarget ? fireIcons.fire
-                    : val>=results.targets.coastTarget ? fireIcons.coast
-                    : val>=results.targets.leanTarget ? fireIcons.lean
-                    : "🧭 Keep going!" }
+                <td className="border px-2 py-1 text-base font-medium">
+                  {val >= results.targets.fatTarget
+                  ? <span className="text-xl">🐋 Fat FIRE</span>
+                  : val >= results.targets.fireTarget
+                  ? <span className="text-xl">🔥 FIRE</span>
+                  : val >= results.targets.coastTarget
+                  ? <span className="text-xl">🦈 Coast</span>
+                  : val >= results.targets.leanTarget
+                  ? <span className="text-xl">🏋️‍♂️ Lean</span>
+                  : <span className="text-sm text-gray-600">🧭 Keep going!</span>}
                 </td>
+
               </tr>
             )}
           </tbody>
