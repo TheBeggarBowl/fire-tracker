@@ -57,10 +57,7 @@ export default function App() {
   useEffect(() => {
     alert(
 `📢 Disclaimer:
-
-This tool offers rough projections — not guarantees.
-Use it at your own discretion. The creator is not responsible for any anomalies.
-
+This tool offers rough projections — not guarantees. Use it at your own discretion. The creator is not responsible for any anomalies.
 If you find it helpful, spread the love and good luck on your FIRE journey! 🔥`
     );
   }, []);
