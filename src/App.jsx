@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-
+const [growthMode, setGrowthMode] = useState("conservative"); // or "aggressive"
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const fireIcons = { lean:"🏋️‍♂️", coast:"🦈", fire:"🔥", fat:"🐋" };
 
@@ -138,22 +138,25 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
   }
 };
 
-  const calcFIRE = () => {
-    const now = inputs.currentNetWorth;
-    const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge;
-    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
-    const data = [
-      ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
-      ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
-      ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
-      ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
-    ];
-    return data.map(([label,tgt,age]) => {
-      const gap = now - tgt;
-      const need = gap>=0 ? "Achieved ✅" : `${((Math.pow(tgt/now,1/yearsToFIRE)-1)*100).toFixed(1)}%`;
-      return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
-    });
-  };
+  const calcFutureFIRE = () => {
+  const portGrowth = growthMode === "aggressive" ? results.aggr : results.cons;
+  const milestones = [
+    { label: "🏋️‍♂️ Lean FIRE", target: results.targets.leanTarget },
+    { label: "🦈 Coast FIRE", target: results.targets.coastTarget },
+    { label: "🔥 FIRE", target: results.targets.fireTarget },
+    { label: "🐋 Fat FIRE", target: results.targets.fatTarget }
+  ];
+
+  return milestones.map(({ label, target }) => {
+    const found = Object.entries(portGrowth).find(([year, val]) => val >= target);
+    if (!found) return { label, target, age: "-", year: "-", note: "🚧 Not in projection range" };
+
+    const [year, val] = found;
+    const age = inputs.currentAge + (+year - inputs.startYear);
+    return { label, target, year, age };
+  });
+};
+
 const calcFutureFIRE = () => {
   const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
   const milestones = [
@@ -279,8 +282,19 @@ const calcFutureFIRE = () => {
     </tbody>
   </table>
 </div>
+<div className="mb-2 flex items-center gap-4">
+  <label className="font-medium text-sm">Growth Mode:</label>
+  <select
+    value={growthMode}
+    onChange={e => setGrowthMode(e.target.value)}
+    className="border px-2 py-1 rounded"
+  >
+    <option value="conservative">Conservative CAGR ({inputs.desiredConservativeCAGR}%)</option>
+    <option value="aggressive">Aggressive CAGR ({inputs.desiredAggressiveCAGR}%)</option>
+  </select>
+</div>
 <div className="bg-green-50 p-4 rounded mt-6">
-  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (with SIP)</h2>
+  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (with Monthly Investments)</h2>
   <p className="text-xs text-gray-600 italic mb-2">
     ✅ This table includes your monthly contributions and compound growth.
   </p>
