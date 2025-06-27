@@ -188,24 +188,22 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
                   monthNames.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
               </select>
             :
-              {(() => {
-  const textFields = ["monthlyExpense", "sip", "currentNetWorth"];
-  return textFields.includes(k) ? (
-    <input
-      type="text"
-      value={formatNumberWithCommas(inputs[k], inputs.currency)}
-      onChange={e => update(k, parseFormattedNumber(e.target.value))}
-      className="mt-1 block w-full border rounded px-2 py-1"
-    />
-  ) : (
-    <input
-      type="number"
-      value={inputs[k]}
-      onChange={e => update(k, e.target.value)}
-      className="mt-1 block w-full border rounded px-2 py-1"
-    />
-  );
-})()}
+                            : ["monthlyExpense", "sip", "currentNetWorth"].includes(k) ? (
+                  <input
+                    type="text"
+                    value={formatNumberWithCommas(inputs[k], inputs.currency)}
+                    onChange={e => update(k, parseFormattedNumber(e.target.value))}
+                    className="mt-1 block w-full border rounded px-2 py-1"
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    value={inputs[k]}
+                    onChange={e => update(k, e.target.value)}
+                    className="mt-1 block w-full border rounded px-2 py-1"
+                  />
+                )
+
 
             }
           </div>
