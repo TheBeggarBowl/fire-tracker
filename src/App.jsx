@@ -1,12 +1,24 @@
 import { useState, useEffect } from "react";
 
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+const FIRE_DESCRIPTIONS = {
+  lean: "Lean FIRE: Basic living expenses, minimal lifestyle",
+  coast: "Coast FIRE: Invested enough to retire at traditional age without further saving (assumes 10% return)",
+  fire: "FIRE: Comfortable retirement with standard lifestyle",
+  fat: "Fat FIRE: Luxurious retirement with high spending"
+};
+
 export default function App() {
   const defaultInputs = {
     initial: 500000,
     sip: 10000,
     conservative: 8,
     aggressive: 12,
-    startMonth: 6,
+    startMonth: "Jun",
     startYear: new Date().getFullYear(),
     projectionYears: 10,
     currency: "INR",
@@ -15,38 +27,6 @@ export default function App() {
     desiredCoastAge: 45,
     inflation: 6,
     monthlyExpense: 105000,
-  };
-
-  const labels = {
-    initial: "Initial Investment",
-    sip: "Monthly SIP",
-    conservative: "Conservative Return (%)",
-    aggressive: "Aggressive Return (%)",
-    startMonth: "Start Month (1-12)",
-    startYear: "Start Year",
-    projectionYears: "Years to Project",
-    currency: "Currency",
-    currentAge: "Your Current Age",
-    desiredFIREAge: "Target FIRE Age",
-    desiredCoastAge: "Target Coast Age",
-    inflation: "Expected Inflation (%)",
-    monthlyExpense: "Monthly Expenses",
-  };
-
-  const tooltips = {
-    initial: "Amount you already have invested",
-    sip: "Monthly investment amount",
-    conservative: "Expected return for conservative portfolio",
-    aggressive: "Expected return for aggressive portfolio",
-    startMonth: "Month you begin investing (1 = Jan)",
-    startYear: "Year you begin investing",
-    projectionYears: "Number of years to simulate",
-    currency: "Select your preferred currency",
-    currentAge: "Your current age",
-    desiredFIREAge: "Age you want to fully retire (FIRE)",
-    desiredCoastAge: "Age you want to reach coast FIRE",
-    inflation: "Annual inflation rate",
-    monthlyExpense: "Your monthly spending today",
   };
 
   const [inputs, setInputs] = useState(() => {
@@ -67,95 +47,62 @@ export default function App() {
   }, [inputs]);
 
   const updateInput = (key, value) => {
-    setInputs((prev) => ({
-      ...prev,
-      [key]: key === "currency" ? value : Number(value),
-    }));
+    const isNumber = key !== "currency" && key !== "startMonth";
+    setInputs((prev) => ({ ...prev, [key]: isNumber ? Number(value) : value }));
   };
 
   const calculate = () => {
     const {
-      sip,
-      initial,
-      startMonth,
-      startYear,
-      projectionYears,
-      conservative,
-      aggressive,
-      currentAge,
-      desiredFIREAge,
-      desiredCoastAge,
-      monthlyExpense,
-      inflation,
+      sip, initial, startMonth, startYear, projectionYears,
+      conservative, aggressive, currentAge, desiredFIREAge,
+      desiredCoastAge, monthlyExpense, inflation
     } = inputs;
 
     const totalMonths = projectionYears * 12;
     const yearsToFIRE = desiredFIREAge - currentAge;
-    const yearsToCoast = desiredCoastAge - currentAge;
     const yearlyToday = monthlyExpense * 12;
-    const yearlyRetirement =
-      yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
+    const yearlyRetirement = yearlyToday * Math.pow(1 + inflation / 100, yearsToFIRE);
     const leanTarget = yearlyRetirement * 15;
     const fireTarget = yearlyRetirement * 25;
     const fatTarget = yearlyRetirement * 40;
 
-    const coastFutureValue =
-      yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
-    const coastTarget =
-      coastFutureValue /
-      Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
+    const coastFutureValue = yearlyToday * 25 * Math.pow(1 + inflation / 100, yearsToFIRE);
+    const coastTarget = coastFutureValue / Math.pow(1 + conservative / 100, desiredFIREAge - desiredCoastAge);
 
-    const targets = {
-      lean: leanTarget,
-      coast: coastTarget,
-      fire: fireTarget,
-      fat: fatTarget,
-    };
+    const targets = { lean: leanTarget, coast: coastTarget, fire: fireTarget, fat: fatTarget };
 
     const project = (rate) => {
       let portfolio = initial;
-      const monthlyRate = rate / 12 / 100;
+      let monthlyRate = rate / 12 / 100;
       let yearlyTotals = {};
       let year = startYear;
-      let month = startMonth - 1;
+      let month = MONTHS.indexOf(startMonth);
 
       for (let i = 0; i < totalMonths; i++) {
         portfolio = portfolio * (1 + monthlyRate) + sip;
+        if (!yearlyTotals[year]) yearlyTotals[year] = 0;
+        yearlyTotals[year] = portfolio;
         month++;
         if (month >= 12) {
           month = 0;
           year++;
         }
-        if ((i + 1) % 12 === 0 || i === totalMonths - 1) {
-          yearlyTotals[year] = portfolio;
-        }
       }
       return yearlyTotals;
     };
 
-    const cons = project(conservative);
-    const aggr = project(aggressive);
-
-    const findMilestoneYear = (data, target) =>
-      Object.entries(data).find(([year, value]) => value >= target)?.[0] ?? "-";
-
-    const milestones = {
-      lean: findMilestoneYear(cons, leanTarget) || "-",
-      coast: findMilestoneYear(cons, coastTarget) || "-",
-      fire: findMilestoneYear(cons, fireTarget) || "-",
-      fat: findMilestoneYear(cons, fatTarget) || "-",
-    };
-
-    setResults({ cons, aggr, targets, milestones });
+    setResults({
+      cons: project(conservative),
+      aggr: project(aggressive),
+      targets
+    });
   };
 
   const formatCurrency = (val) => {
     const currency = inputs?.currency || "INR";
     const locales = currency === "INR" ? "en-IN" : "en-US";
     const symbol = currency === "INR" ? "₹" : "$";
-    return `${symbol}${Intl.NumberFormat(locales, {
-      maximumFractionDigits: 0,
-    }).format(val)}`;
+    return `${symbol}${Intl.NumberFormat(locales, { maximumFractionDigits: 0 }).format(val)}`;
   };
 
   const getColor = (val, t) => {
@@ -173,11 +120,8 @@ export default function App() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {Object.entries(defaultInputs).map(([key, def]) => (
           <div key={key} className="space-y-1">
-            <label
-              className="text-sm font-medium"
-              title={tooltips[key] || ""}
-            >
-              {labels[key] || key}
+            <label className="text-sm font-medium capitalize">
+              {key.replace(/([A-Z])/g, " $1")}
             </label>
             {key === "currency" ? (
               <select
@@ -185,8 +129,18 @@ export default function App() {
                 value={inputs[key]}
                 onChange={(e) => updateInput(key, e.target.value)}
               >
-                <option value="INR">INR (₹)</option>
-                <option value="USD">USD ($)</option>
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+              </select>
+            ) : key === "startMonth" ? (
+              <select
+                className="w-full px-2 py-1 border rounded"
+                value={inputs[key]}
+                onChange={(e) => updateInput(key, e.target.value)}
+              >
+                {MONTHS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
               </select>
             ) : (
               <input
@@ -202,6 +156,28 @@ export default function App() {
 
       {results && (
         <>
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold mb-2">FIRE Milestone Descriptions</h2>
+            <ul className="text-sm text-gray-700 space-y-1">
+              {Object.entries(FIRE_DESCRIPTIONS).map(([key, text]) => (
+                <li key={key}>
+                  <strong className="capitalize">{key}:</strong> {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-6 text-sm text-gray-700">
+            <strong>Legend:</strong>
+            <div className="flex gap-4 mt-2">
+              <span className="bg-yellow-200 px-2 py-1 rounded">Lean FIRE</span>
+              <span className="bg-blue-300 px-2 py-1 rounded">Coast FIRE</span>
+              <span className="bg-green-300 px-2 py-1 rounded">FIRE</span>
+              <span className="bg-cyan-300 px-2 py-1 rounded">FAT FIRE</span>
+            </div>
+            <p className="mt-2 italic">* Coast FIRE assumes stopping contributions and 10% return until FIRE age.</p>
+          </div>
+
           <div>
             <h2 className="text-lg font-semibold mt-6">Projection Summary</h2>
             <table className="w-full mt-2 text-sm border">
@@ -225,26 +201,7 @@ export default function App() {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="bg-gray-50 font-medium">
-                  <td className="border px-2 py-1">🎯 Milestones</td>
-                  <td className="border px-2 py-1" colSpan="2">
-                    Lean: {results.milestones.lean}, Coast: {results.milestones.coast}, FIRE: {results.milestones.fire}, FAT: {results.milestones.fat}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
-
-            <div className="mt-4 text-sm text-gray-700">
-              <strong>Legend:</strong>
-              <div className="flex gap-4 mt-2">
-                <span className="bg-yellow-200 px-2 py-1 rounded">Lean FIRE</span>
-                <span className="bg-blue-300 px-2 py-1 rounded">Coast FIRE</span>
-                <span className="bg-green-300 px-2 py-1 rounded">FIRE</span>
-                <span className="bg-cyan-300 px-2 py-1 rounded">FAT FIRE</span>
-              </div>
-              <p className="mt-2 italic">* Coast FIRE assumes stopping contributions and 10% return until FIRE age.</p>
-            </div>
           </div>
         </>
       )}
