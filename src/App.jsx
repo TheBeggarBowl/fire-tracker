@@ -235,7 +235,7 @@ If you find it helpful, spread the word and Happy Retirement! 🔥`
           <td className="border px-2 py-1 text-base font-semibold">
             {r.label.includes("Lean") && <span className="text-lg">🏋️‍♂️ Lean</span>}
             {r.label.includes("Coast") && <span className="text-lg">🦈 Coast</span>}
-            {r.label.includes("FIRE") && !r.label.includes("Fat") && <span className="text-lg">🔥 FIRE</span>}
+            {r.label === "FIRE" && <span className="text-lg">🔥 FIRE</span>}
             {r.label.includes("Fat") && <span className="text-lg">🐋 Fat FIRE</span>}
           </td>
           <td className="border px-2 py-1">{fmt(r.tgt)}</td>
