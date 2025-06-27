@@ -5,18 +5,18 @@ const fireIcons = { lean:"🏋️‍♂️", coast:"🦈", fire:"🔥", fat:"�
 
 const labelMap = {
   currency: "Currency",
-  currentAge: "Current Age",
-  desiredFIREAge: "Desired FIRE Age",
-  desiredCoastAge: "Desired Coast FIRE Age",
-  monthlyExpense: "Current Monthly Expenses",
-  inflation: "Inflation (%)",
-  startMonth: "Starting Month",
-  startYear: "Starting Year",
-  currentNetWorth: "Current Net Worth",
-  sip: "Monthly Investment",
-  projectionYears: "Projection Period (Years)",
-  desiredConservativeCAGR: "Desired Conservative CAGR (%)",
-  desiredAggressiveCAGR: "Desired Aggressive CAGR (%)"
+  currentAge: "Your Current Age",
+  desiredFIREAge: "Target Age for FIRE",
+  desiredCoastAge: "Target Age for Coast FIRE",
+  monthlyExpense: "Monthly Living Expenses (Today)",
+  inflation: "Expected Inflation Rate (%)",
+  startMonth: "Projection Start Month",
+  startYear: "Projection Start Year",
+  currentNetWorth: "Current Retirement Corpus",
+  sip: "Monthly Investment Contribution",
+  projectionYears: "Projection Duration (Years)",
+  desiredConservativeCAGR: "Conservative Growth Rate (%)",
+  desiredAggressiveCAGR: "Aggressive Growth Rate (%)"
 };
 
 export default function App() {
