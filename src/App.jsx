@@ -32,7 +32,7 @@ const parseFormattedNumber = (str) => {
 
 export default function App() {
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
+  const currentMonth = now.getMonth() + 1; // getMonth() is 0-indexed
   const currentYear = now.getFullYear();
 
   const defaultInputs = {
@@ -52,6 +52,7 @@ export default function App() {
   };
 
   const [inputs, setInputs] = useState(() => {
+    // Initialize inputs from localStorage or default values
     return Object.keys(defaultInputs).reduce((a, k) => {
       a[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
       return a;
@@ -61,7 +62,19 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
-  // New state variables to track achieved milestones
+  // --- Dark Mode State ---
+  const [darkMode, setDarkMode] = useState(() => {
+    // Initialize dark mode from localStorage or system preference
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode) {
+      return JSON.parse(savedMode);
+    }
+    // Check system preference (prefers-color-scheme)
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  // -----------------------
+
+  // States to track achieved milestones for *display logic per path*
   const [conservativeMilestonesAchieved, setConservativeMilestonesAchieved] = useState({
     lean: false,
     coast: false,
@@ -78,14 +91,28 @@ export default function App() {
     all: false,
   });
 
+  // Effect to save inputs to localStorage and recalculate on input change
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
     calculate();
-    // Reset milestones when inputs change - this is good
+    // Reset milestone achievement flags when inputs change,
+    // so the new projection starts fresh.
     setConservativeMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
     setAggressiveMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
   }, [inputs]);
 
+  // --- Dark Mode Effect ---
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
+  // -----------------------
+
+  // Effect to show disclaimer alert on initial load
   useEffect(() => {
     alert(
       `📢 Disclaimer:
@@ -94,6 +121,7 @@ Good luck on your FIRE journey! 🔥`
     );
   }, []);
 
+  // Handler to update input state
   const update = (k, v) => {
     const numericKeys = ["monthlyExpense", "sip", "currentNetWorth", "inflation", "projectionYears", "desiredConservativeCAGR", "desiredAggressiveCAGR", "currentAge", "desiredFIREAge", "desiredCoastAge"];
     const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
@@ -104,6 +132,7 @@ Good luck on your FIRE journey! 🔥`
     }));
   };
 
+  // Core calculation logic
   const calculate = () => {
     const {
       sip, currentNetWorth, startMonth, startYear,
@@ -112,43 +141,50 @@ Good luck on your FIRE journey! 🔥`
       desiredCoastAge, monthlyExpense, inflation
     } = inputs;
 
+    // Calculate yearly expenses with inflation
     const yearlyExpenses = {};
-    let exp = monthlyExpense * 12;
+    let exp = monthlyExpense * 12; // Annual expenses in the start year
     for (let i = 0; i <= projectionYears; i++) {
       yearlyExpenses[startYear + i] = exp;
-      exp *= 1 + inflation / 100;
+      exp *= 1 + inflation / 100; // Inflate for the next year
     }
 
+    // Calculate FIRE targets
     const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
-    const expAtFIRE = yearlyExpenses[targetYearFIRE];
+    const expAtFIRE = yearlyExpenses[targetYearFIRE]; // Expenses at target FIRE age
+
+    // Targets based on multiples of annual expenses at FIRE age
     const leanTarget = expAtFIRE * 15;
     const fireTarget = expAtFIRE * 25;
     const fatTarget = expAtFIRE * 40;
-    const coastFuture = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
-    const coastTarget = coastFuture / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
+
+    // Coast FIRE target: Calculate future FIRE target and discount it back to Coast FIRE age
+    const futureFireCorpus = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
+    const coastTarget = futureFireCorpus / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
+    // Function to project portfolio growth
     const project = (rate) => {
       let port = currentNetWorth;
       const monthlyRate = rate / 12 / 100;
-      let year = startYear, m = startMonth - 1;
+      let year = startYear, m = startMonth - 1; // monthNames is 0-indexed, startMonth is 1-indexed
       const yearlyTotals = {};
-      yearlyTotals[`${year}`] = port;
+      yearlyTotals[`${year}`] = port; // Initial portfolio at the start of the first year
+
       for (let i = 0; i < projectionYears * 12; i++) {
         port = port * (1 + monthlyRate) + sip;
         m++;
-        if (m >= 12) {
-          m = 0;
+        if (m >= 12) { // End of a year
+          m = 0; // Reset month for next year
           year++;
-        }
-        if (m === 11 || i === projectionYears * 12 - 1) {
-          yearlyTotals[`${year}`] = port;
+          yearlyTotals[`${year}`] = port; // Store year-end balance
         }
       }
       return yearlyTotals;
     };
 
+    // Set calculated results
     setResults({
       yearlyExpenses,
       targets,
@@ -157,75 +193,164 @@ Good luck on your FIRE journey! 🔥`
     });
   };
 
+  // Formatter for currency display
   const fmt = (v) => {
     const cur = inputs.currency;
     const sym = cur === "INR" ? "₹" : "$";
     if (cur === "INR") {
+      // Indian numbering system (Lakhs and Crores)
       if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
       if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
       return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
     } else {
+      // US numbering system (Thousands and Millions)
       if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
       if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
       return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
     }
   };
 
+  // Calculates current FIRE progress
   const calcFIRE = () => {
-    const now = inputs.currentNetWorth;
+    const currentCorpus = inputs.currentNetWorth;
     const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge;
-    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
+    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets; // Assumes results is not null here
+
+    // Data for the current progress table
     const data = [
       ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
       ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
       ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
       ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
     ];
+
     return data.map(([label, tgt, age]) => {
-      const gap = now - tgt;
-      const need = gap >= 0 ? "Achieved ✅" : `${((Math.pow(tgt / now, 1 / yearsToFIRE) - 1) * 100).toFixed(1)}%`;
+      const gap = currentCorpus - tgt; // Surplus (+) or deficit (-)
+      let need;
+      if (gap >= 0) {
+        need = "Achieved ✅";
+      } else if (currentCorpus <= 0) { // Avoid division by zero or negative currentCorpus
+        need = "N/A"; // Or some other appropriate message
+      }
+      else {
+        // Calculate required CAGR to reach target in yearsToFIRE
+        // Formula: ((Target / Current)^(1/Years) - 1) * 100
+        // Ensure yearsToFIRE is positive to avoid issues
+        const effectiveYears = age - inputs.currentAge; // Years to target age for this specific milestone
+        need = effectiveYears > 0 ? `${((Math.pow(tgt / currentCorpus, 1 / effectiveYears) - 1) * 100).toFixed(1)}%` : "N/A";
+      }
       return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
   };
 
+  // Render nothing until results are calculated
   if (!results) return null;
 
-  // Modified milestoneCheck function - now a pure function returning statuses
-  const getMilestoneStatus = (val, targets) => {
-    const statuses = [];
-    if (val >= targets.leanTarget) {
-      statuses.push("🏋️‍♂️ Lean FIRE");
-    }
-    if (val >= targets.coastTarget) {
-      statuses.push("🦈 Coast FIRE");
-    }
-    if (val >= targets.fireTarget) {
-      statuses.push("🔥 FIRE");
-    }
-    if (val >= targets.fatTarget) {
-      statuses.push("🐋 Fat FIRE");
+  // Function to determine and display FIRE status for each projected year
+  const getMilestoneStatus = (val, targets, pathType) => {
+    let currentMilestones;
+    let setMilestones;
+
+    // Select the correct state and setter based on the path (conservative/aggressive)
+    if (pathType === 'conservative') {
+      currentMilestones = conservativeMilestonesAchieved;
+      setMilestones = setConservativeMilestonesAchieved;
+    } else { // aggressive
+      currentMilestones = aggressiveMilestonesAchieved;
+      setMilestones = setAggressiveMilestonesAchieved;
     }
 
-    if (statuses.length === 4) { // All 4 types achieved
+    // If "Happy Retirement!" (all milestones) has already been reached for this path,
+    // continue to display that for all subsequent years. This is the highest priority.
+    if (currentMilestones.all) {
       return "🎉 Happy Retirement!";
-    } else if (statuses.length > 0) {
-      return statuses.join(", ");
+    }
+
+    const achievedThisYear = []; // Stores milestones newly achieved in THIS specific year
+    let updatedMilestones = { ...currentMilestones }; // Create a mutable copy of the current state
+
+    // Check for each milestone. If value meets target AND it hasn't been achieved yet,
+    // mark it as achieved for this year and update the persistent flags.
+    if (val >= targets.leanTarget && !updatedMilestones.lean) {
+      achievedThisYear.push("🏋️‍♂️ Lean FIRE");
+      updatedMilestones.lean = true;
+    }
+    if (val >= targets.coastTarget && !updatedMilestones.coast) {
+      achievedThisYear.push("🦈 Coast FIRE");
+      updatedMilestones.coast = true;
+    }
+    if (val >= targets.fireTarget && !updatedMilestones.fire) {
+      achievedThisYear.push("🔥 FIRE");
+      updatedMilestones.fire = true;
+    }
+    if (val >= targets.fatTarget && !updatedMilestones.fat) {
+      achievedThisYear.push("🐋 Fat FIRE");
+      updatedMilestones.fat = true;
+    }
+
+    // After checking all individual milestones, check if all are now achieved.
+    // This is for the "Happy Retirement!" condition.
+    if (updatedMilestones.lean && updatedMilestones.coast && updatedMilestones.fire && updatedMilestones.fat && !updatedMilestones.all) {
+        achievedThisYear.push("🎉 Happy Retirement!"); // Add to current year's achievements for display
+        updatedMilestones.all = true; // Mark all as achieved persistently for future years
+    }
+
+    // Update the state for the current path if there's any change in achievement flags
+    // This prevents unnecessary re-renders if no new milestones were achieved for that year
+    if (JSON.stringify(currentMilestones) !== JSON.stringify(updatedMilestones)) {
+      setMilestones(updatedMilestones);
+    }
+
+    // Determine the message to display for this year based on what was achieved
+    if (achievedThisYear.length > 0) {
+      // If new milestones were achieved this year, display them
+      return achievedThisYear.join(", ");
     } else {
+      // If no new milestones were achieved this year,
+      // display the highest level of FIRE already achieved,
+      // or "Keep going!" if none have been achieved yet.
+      // Order matters here to show the "highest" achieved status.
+      if (currentMilestones.fat) return "🐋 Fat FIRE Achieved";
+      if (currentMilestones.fire) return "🔥 FIRE Achieved";
+      if (currentMilestones.coast) return "🦈 Coast FIRE Achieved";
+      if (currentMilestones.lean) return "🏋️‍♂️ Lean FIRE Achieved";
       return "🧭 Keep going!";
     }
   };
 
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
-      <h1 className="text-center text-3xl font-bold">
-        🔥 Financial Independence and Retire Early (FIRE) Calculator 🔥
-      </h1>
+    // Apply Tailwind's dark mode classes based on the 'dark' class on the html element
+    // The bg-white and text-gray-900 are default light mode, dark:bg-gray-800 and dark:text-white are for dark mode
+    <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans bg-white text-gray-900 dark:bg-gray-800 dark:text-white min-h-screen transition-colors duration-200">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-center text-3xl font-bold flex-grow">
+          🔥 Financial Independence and Retire Early (FIRE) Calculator 🔥
+        </h1>
+        {/* Dark Mode Toggle Button */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {darkMode ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h1M4 12H3m15.325 3.325l-.707.707M6.364 6.364l-.707-.707m12.728 0l-.707-.707M6.364 17.636l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
+      </div>
+
 
       {showIntro && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm">
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
           <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones for different scenarios with which you can retire early - 🏋️‍♂️ Lean FIRE – Lean FIRE – Early retirement with frugal lifestyle , 🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement, 🔥 FIRE – Early retirement with comfortable standard of living and 🐋 Fat FIRE – Early retirement with luxurious lifestyle. These are rough projections and not financial advice.
           <button
-            className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900"
+            className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
             onClick={() => setShowIntro(false)}
             aria-label="Dismiss"
           >
@@ -234,7 +359,7 @@ Good luck on your FIRE journey! 🔥`
         </div>
       )}
 
-      <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200">
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
           <li>🏋️‍♂️ Lean FIRE – Early retirement with frugal lifestyle </li>
@@ -245,6 +370,7 @@ Good luck on your FIRE journey! 🔥`
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Input fields */}
         {Object.entries(defaultInputs).map(([k]) => (
           <div key={k}>
             <label className="block text-sm font-medium">{labelMap[k]}</label>
@@ -252,7 +378,7 @@ Good luck on your FIRE journey! 🔥`
               <select
                 value={inputs[k]}
                 onChange={e => update(k, e.target.value)}
-                className="mt-1 block w-full border rounded px-2 py-1"
+                className="mt-1 block w-full border rounded px-2 py-1 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               >
                 {k === "currency" ? (
                   <>
@@ -270,14 +396,14 @@ Good luck on your FIRE journey! 🔥`
                 type="text"
                 value={formatNumberWithCommas(inputs[k], inputs.currency)}
                 onChange={e => update(k, parseFormattedNumber(e.target.value))}
-                className="mt-1 block w-full border rounded px-2 py-1"
+                className="mt-1 block w-full border rounded px-2 py-1 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             ) : (
               <input
                 type="number"
                 value={inputs[k]}
                 onChange={e => update(k, e.target.value)}
-                className="mt-1 block w-full border rounded px-2 py-1"
+                className="mt-1 block w-full border rounded px-2 py-1 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             )}
           </div>
@@ -286,84 +412,91 @@ Good luck on your FIRE journey! 🔥`
       <div className="text-right mt-4">
         <button
           onClick={() => setInputs({ ...defaultInputs })}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
         >
           Reset to Default
         </button>
       </div>
-      <div className="bg-gray-100 p-4 rounded">
+
+      {/* FIRE Progress Table (based on current net worth) */}
+      <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
         <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
-        <table className="w-full text-center text-sm mt-2 border">
-          <thead className="bg-gray-200">
+        <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600">
+          <thead className="bg-gray-200 dark:bg-gray-600">
             <tr>
-              <th className="border px-2 py-1">Milestone</th>
-              <th className="border px-2 py-1">Target</th>
-              <th className="border px-2 py-1">Target Age / Year</th>
-              <th className="border px-2 py-1">Gap / Surplus</th>
-              <th className="border px-2 py-1">Required CAGR</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Milestone</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Target</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Target Age / Year</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Gap / Surplus</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Required CAGR</th>
             </tr>
           </thead>
           <tbody>
             {calcFIRE().map((r, i) =>
-              <tr key={i}>
-                <td className="border px-2 py-1 text-lg">{r.label}</td>
-                <td className="border px-2 py-1">{fmt(r.tgt)}</td>
-                <td className="border px-2 py-1">{r.age} / {r.year}</td>
-                <td className={`border px-2 py-1 ${r.gap >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <tr key={i} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
+                <td className="border px-2 py-1 text-lg border-gray-300 dark:border-gray-600">{r.label}</td>
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(r.tgt)}</td>
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{r.age} / {r.year}</td>
+                <td className={`border px-2 py-1 ${r.gap >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"} border-gray-300 dark:border-gray-600`}>
                   {fmt(Math.abs(r.gap))}
                 </td>
-                <td className="border px-2 py-1">{r.need}</td>
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{r.need}</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      {/* Projection Milestone Achievement Table */}
-      <div className="bg-gray-100 p-4 rounded">
-        <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on current retirement corpus + projected returns) </h2>
-        <table className="w-full text-center text-sm mt-2 border">
-          <thead className="bg-gray-200">
+
+      {/* Projection Milestone Achievement Table (Year milestone is first met) */}
+      <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
+        <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (Year milestones are first met) </h2>
+        <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600">
+          <thead className="bg-gray-200 dark:bg-gray-600">
             <tr>
-              <th className="border px-2 py-1">Milestone</th>
-              <th className="border px-2 py-1">Target</th>
-              <th className="border px-2 py-1">Conservative Year</th>
-              <th className="border px-2 py-1">Aggressive Year</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Milestone</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Target</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Conservative Year</th>
+              <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Aggressive Year</th>
             </tr>
           </thead>
           <tbody>
             {["leanTarget", "coastTarget", "fireTarget", "fatTarget"].map((key, i) => {
-              const label = Object.entries(fireIcons).find(([k]) => key.includes(k))?.[1] + " " + key.replace("Target", "").toUpperCase();
+              const labelParts = key.replace("Target", "").split(/(?=[A-Z])/);
+              const fireType = labelParts[0].toLowerCase();
+              const label = fireIcons[fireType] + " " + fireType.toUpperCase();
+
               const tgt = results.targets[key];
 
               const findYear = (data) =>
-                Object.entries(data).find(([yr, val]) => val >= tgt)?.[0] ?? "❌";
+                Object.entries(data).find(([, val]) => val >= tgt)?.[0] ?? "❌";
 
               const yearCons = findYear(results.cons);
               const yearAggr = findYear(results.aggr);
 
               return (
-                <tr key={i}>
-                  <td className="border px-2 py-1 text-lg">{label}</td>
-                  <td className="border px-2 py-1">{fmt(tgt)}</td>
-                  <td className={`border px-2 py-1 ${yearCons === "❌" ? "text-red-600" : ""}`}>{yearCons}</td>
-                  <td className={`border px-2 py-1 ${yearAggr === "❌" ? "text-red-600" : ""}`}>{yearAggr}</td>
+                <tr key={i} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
+                  <td className="border px-2 py-1 text-lg border-gray-300 dark:border-gray-600">{label}</td>
+                  <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(tgt)}</td>
+                  <td className={`border px-2 py-1 ${yearCons === "❌" ? "text-red-600 dark:text-red-400" : ""} border-gray-300 dark:border-gray-600`}>{yearCons}</td>
+                  <td className={`border px-2 py-1 ${yearAggr === "❌" ? "text-red-600 dark:text-red-400" : ""} border-gray-300 dark:border-gray-600`}>{yearAggr}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      {/* Projection Summary Table */}
+
+      {/* Projection Summary Table (Detailed yearly breakdown) */}
       <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
-      <table className="w-full text-sm mt-2 text-center border">
-        <thead className="bg-gray-200">
+      <table className="w-full text-sm mt-2 text-center border border-gray-300 dark:border-gray-600">
+        <thead className="bg-gray-200 dark:bg-gray-600">
           <tr>
-            <th className="border px-2 py-1">Year</th>
-            <th className="border px-2 py-1">Expenses</th>
-            <th className="border px-2 py-1">Conservative Growth</th>
-            <th className="border px-2 py-1">FIRE Status (Cons)</th>
-            <th className="border px-2 py-1">Aggressive Growth</th>
-            <th className="border px-2 py-1">FIRE Status (Aggr)</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Year</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Expenses</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Conservative Growth</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">FIRE Status (Cons)</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Aggressive Growth</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">FIRE Status (Aggr)</th>
           </tr>
         </thead>
         <tbody>
@@ -371,16 +504,16 @@ Good luck on your FIRE journey! 🔥`
             const aggrVal = results.aggr[yr];
 
             return (
-              <tr key={yr}>
-                <td className="border px-2 py-1">{yr}</td>
-                <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
-                <td className="border px-2 py-1">{fmt(consVal)}</td>
-                <td className="border px-2 py-1 text-sm text-left">
-                  {getMilestoneStatus(consVal, results.targets)}
+              <tr key={yr} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{yr}</td>
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(results.yearlyExpenses[yr] || 0)}</td>
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(consVal)}</td>
+                <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
+                  {getMilestoneStatus(consVal, results.targets, 'conservative')}
                 </td>
-                <td className="border px-2 py-1">{fmt(aggrVal)}</td>
-                <td className="border px-2 py-1 text-sm text-left">
-                  {getMilestoneStatus(aggrVal, results.targets)}
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(aggrVal)}</td>
+                <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
+                  {getMilestoneStatus(aggrVal, results.targets, 'aggressive')}
                 </td>
               </tr>
             );
