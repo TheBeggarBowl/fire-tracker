@@ -37,10 +37,8 @@ const getMilestoneState = (val, targets) => {
   const coast = val >= targets.coastTarget;
   const fire = val >= targets.fireTarget;
   const fat = val >= targets.fatTarget;
-  const all = lean && coast && fire && fat; // All must be true for 'all'
-  return { lean, coast, fire, fat, all };
+  return { lean, coast, fire, fat };
 };
-
 
 export default function App() {
   const now = new Date();
@@ -75,22 +73,21 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
-  // --- Dark Mode State: Default to Light Mode (false) ---
+  // Dark Mode State: Default to Light Mode (false)
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem('darkMode');
-    if (savedMode !== null) { // Check for explicit saved value
+    if (savedMode !== null) {
       return JSON.parse(savedMode);
     }
     return false; // Default to light mode if no saved preference
   });
-  // -----------------------
 
   // Effect to save inputs to localStorage (runs on ANY input change)
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
   }, [inputs]);
 
-  // --- Dark Mode Effect ---
+  // Dark Mode Effect
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -99,7 +96,6 @@ export default function App() {
     }
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
-  // -----------------------
 
   // Effect to show disclaimer alert on initial load
   useEffect(() => {
@@ -131,7 +127,6 @@ Good luck on your FIRE journey! 🔥`
     const messages = {};
     if (inputs.currentAge < 0) messages.currentAge = "Age cannot be negative.";
     if (inputs.desiredFIREAge <= inputs.currentAge) messages.desiredFIREAge = "FIRE Age must be greater than Current Age.";
-    // Clarified Coast Age validation: Must be strictly greater than Current Age and strictly less than FIRE Age
     if (inputs.desiredCoastAge <= inputs.currentAge || inputs.desiredCoastAge >= inputs.desiredFIREAge) {
       messages.desiredCoastAge = "Coast Age must be between Current Age and FIRE Age.";
     }
@@ -149,10 +144,8 @@ Good luck on your FIRE journey! 🔥`
 
   const hasValidationErrors = Object.keys(validationMessages).length > 0;
 
-
   // Core calculation logic (runs only when relevant inputs change)
   useEffect(() => {
-    // Only proceed with calculation if there are no validation errors
     if (hasValidationErrors) {
       setResults(null); // Clear results if inputs are invalid
       return;
@@ -188,7 +181,6 @@ Good luck on your FIRE journey! 🔥`
     const fatTarget = expAtFIRE * expenseMultiplierDueToTax * 40;
 
     const yearsBetweenCoastAndFire = desiredFIREAge - desiredCoastAge;
-    // Ensure yearsBetweenCoastAndFire is not negative or zero to prevent Math.pow issues or illogical calculations
     const coastTarget = (yearsBetweenCoastAndFire > 0) ? fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire) : fireTarget;
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
@@ -204,23 +196,21 @@ Good luck on your FIRE journey! 🔥`
       // Calculate for the current (potentially partial) startYear
       for (let m = currentMonthInProjection; m < 12; m++) {
           const projectedMonthAge = currentAge + (currentProjectionYear - startYear);
-          // SIP applies if the projected age for the *current year* is less than the desired FIRE age.
-          // This means SIP will stop at the beginning of the year the user reaches desiredFIREAge.
           const sipForThisMonth = (projectedMonthAge < desiredFIREAge) ? sip : 0;
           port = port * (1 + monthlyRate) + sipForThisMonth;
       }
-      yearlyTotals[`${currentProjectionYear}`] = port; // This is the balance at the end of 'startYear'
+      yearlyTotals[`${currentProjectionYear}`] = port;
 
       // Calculate for full subsequent years up to projectionYears total *from startYear*
       for (let i = 1; i < projectionYears; i++) {
-        currentProjectionYear++; // Move to the next year
+        currentProjectionYear++;
         const projectedYearAge = currentAge + (currentProjectionYear - startYear);
-        const sipForThisYear = (projectedYearAge < desiredFIREAge) ? sip : 0; // SIP for this full year
+        const sipForThisYear = (projectedYearAge < desiredFIREAge) ? sip : 0;
 
-        for (let m = 0; m < 12; m++) { // 12 months for a full year
+        for (let m = 0; m < 12; m++) {
           port = port * (1 + monthlyRate) + sipForThisYear;
         }
-        yearlyTotals[`${currentProjectionYear}`] = port; // Balance at the end of this full year
+        yearlyTotals[`${currentProjectionYear}`] = port;
       }
       return yearlyTotals;
     };
@@ -259,7 +249,7 @@ Good luck on your FIRE journey! 🔥`
       targets,
       cons: consProjections,
       aggr: aggrProjections,
-      firstAchievementYears // Store this crucial data in results
+      firstAchievementYears
     });
 
   }, [
@@ -274,7 +264,7 @@ Good luck on your FIRE journey! 🔥`
   const fmt = (v) => {
     const cur = inputs.currency;
     const sym = cur === "INR" ? "₹" : "$";
-    if (v === Infinity || isNaN(v)) return "N/A"; // Handle Infinity/NaN from tax rate edge case
+    if (v === Infinity || isNaN(v)) return "N/A";
 
     if (cur === "INR") {
       if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
@@ -289,7 +279,6 @@ Good luck on your FIRE journey! 🔥`
 
   // Calculates current FIRE progress
   const calcFIRE = () => {
-    // Return empty array if results or targets are not yet calculated
     if (!results || !results.targets) return [];
 
     const currentCorpus = inputs.currentNetWorth;
@@ -311,12 +300,12 @@ Good luck on your FIRE journey! 🔥`
       if (gap >= 0) {
         need = "Achieved ✅";
       } else if (effectiveYears <= 0 || currentCorpus <= 0 || tgt <= 0) {
-        need = "N/A"; // Cannot reliably calculate CAGR
+        need = "N/A";
       } else {
         const base = tgt / currentCorpus;
-        if (base < 0) { // If currentCorpus is negative and target is positive or vice versa
+        if (base < 0) {
           need = "N/A (Corpus Sign Mismatch)";
-        } else if (base === 0) { // Target is zero but corpus is not
+        } else if (base === 0) {
           need = "Achieved ✅ (Target is 0)";
         }
         else {
@@ -327,46 +316,46 @@ Good luck on your FIRE journey! 🔥`
     });
   };
 
-  // Render nothing until initial calculation is done (and valid)
-  // This ensures we don't render tables with incomplete data.
-  // We still show the inputs even if results are null due to validation errors.
   if (!results && !hasValidationErrors) return null;
 
-
   // Function to determine and display FIRE status for each projected year
-  // This is a PURE function, it does not modify state.
-  const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears, currentAgeAtProjection, desiredFIREAge) => {
-    const milestonesMetForCurrentValue = getMilestoneState(val, targets); // What is met by THIS year's value
-
+  const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
+    const { lean, coast, fire, fat } = getMilestoneState(val, targets);
     const pathAchievements = firstAchievementYears[pathType];
 
-    // --- Core Logic Flow ---
-
-    // 1. If Fat FIRE has been achieved in THIS YEAR or a PRIOR YEAR, show Happy Retirement.
-    // This is the ultimate goal, so it takes highest precedence.
+    // Priority 1: Full Retirement Achieved (based on Fat FIRE being reached)
     if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
         return "🎉 Happy Retirement!";
     }
 
-    // 2. Check if the *current portfolio value* meets any new milestone for *this year*.
-    // Order matters here: from highest ambition (Fat) to lowest (Lean).
-    // If multiple are met, we want to show the highest one.
-    if (milestonesMetForCurrentValue.fat) return "🐋 Fat FIRE Achieved";
-    if (milestonesMetForCurrentValue.fire) return "🔥 FIRE Achieved";
-    if (milestonesMetForCurrentValue.coast) return "🦈 Coast FIRE Achieved";
-    if (milestonesMetForCurrentValue.lean) return "🏋️‍♂️ Lean FIRE Achieved"; // Corrected variable name
+    // Priority 2: New Milestone Achieved *This Year* (highest to lowest)
+    if (fat) {
+        return "🐋 Fat FIRE Achieved";
+    }
+    if (fire) {
+        return "🔥 FIRE Achieved";
+    }
+    if (coast) {
+        return "🦈 Coast FIRE Achieved";
+    }
+    if (lean) {
+        return "🏋️‍♂️ Lean FIRE Achieved";
+    }
 
-    // 3. If no *new* milestone is met by the current value, but a milestone was achieved in an *earlier year* for this path:
-    // Display the highest one that has already been achieved historically.
-    // Again, order from highest ambition to lowest.
-    if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) return "🔥 FIRE Achieved (earlier)";
-    if (pathAchievements.coast && currentYearInProjection > pathAchievements.coast) return "🦈 Coast FIRE Achieved (earlier)";
-    if (pathAchievements.lean && currentYearInProjection > pathAchievements.lean) return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
-
-    // 4. If none of the above conditions are met, then the user should "Keep going!".
+    // Priority 3: Milestone Achieved *In a Previous Year* (highest to lowest)
+    if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) {
+        return "🔥 FIRE Achieved (earlier)";
+    }
+    if (pathAchievements.coast && currentYearInProjection > pathAchievements.coast) {
+        return "🦈 Coast FIRE Achieved (earlier)";
+    }
+    if (pathAchievements.lean && currentYearInProjection > pathAchievements.lean) {
+        return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
+    }
+    
+    // Priority 4: Default
     return "🧭 Keep going!";
   };
-
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans bg-white text-gray-900 dark:bg-gray-800 dark:text-white min-h-screen transition-colors duration-200">
@@ -391,7 +380,6 @@ Good luck on your FIRE journey! 🔥`
           )}
         </button>
       </div>
-
 
       {showIntro && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
@@ -459,7 +447,7 @@ Good luck on your FIRE journey! 🔥`
           </div>
         ))}
         {/* Reset button moved here, inside the grid */}
-        <div className="col-span-full text-right mt-4 sm:mt-0"> {/* col-span-full ensures it takes full width */}
+        <div className="col-span-full text-right mt-4 sm:mt-0">
             <button
                 onClick={() => setInputs({ ...defaultInputs })}
                 className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
@@ -476,12 +464,12 @@ Good luck on your FIRE journey! 🔥`
       )}
 
       {/* FIRE Progress Table (based on current net worth) */}
-      {results && ( // Only show results sections if results are available
+      {results && (
         <>
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
             <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
-            <div className="overflow-x-auto"> {/* Added for horizontal scroll on mobile */}
-              <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[600px]"> {/* min-width to ensure scroll */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[600px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
                   <tr>
                     <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Milestone</th>
@@ -511,8 +499,8 @@ Good luck on your FIRE journey! 🔥`
           {/* Projection Milestone Achievement Table (Year milestone is first met) */}
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
             <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (Year milestones are first met) </h2>
-            <div className="overflow-x-auto"> {/* Added for horizontal scroll on mobile */}
-              <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[500px]"> {/* min-width to ensure scroll */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[500px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
                   <tr>
                     <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Milestone</th>
@@ -529,7 +517,6 @@ Good luck on your FIRE journey! 🔥`
 
                     const tgt = results.targets[key];
 
-                    // Using the pre-calculated firstAchievementYears from results
                     const yearCons = results.firstAchievementYears.conservative[fireType] ?? "❌";
                     const yearAggr = results.firstAchievementYears.aggressive[fireType] ?? "❌";
 
@@ -549,8 +536,8 @@ Good luck on your FIRE journey! 🔥`
 
           {/* Projection Summary Table (Detailed yearly breakdown) */}
           <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
-          <div className="overflow-x-auto"> {/* Added for horizontal scroll on mobile */}
-            <table className="w-full text-sm mt-2 text-center border border-gray-300 dark:border-gray-600 min-w-[700px]"> {/* min-width to ensure scroll */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm mt-2 text-center border border-gray-300 dark:border-gray-600 min-w-[700px]">
               <thead className="bg-gray-200 dark:bg-gray-600">
                 <tr>
                   <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Year</th>
@@ -563,12 +550,10 @@ Good luck on your FIRE journey! 🔥`
                 </tr>
               </thead>
               <tbody>
-                {/* Ensure Object.entries starts from the earliest year if you want a complete sequence.
-                    results.cons will have keys as years, which should be iterable in order. */}
                 {Object.entries(results.cons).sort(([yrA], [yrB]) => parseInt(yrA) - parseInt(yrB)).map(([yr, consVal]) => {
                   const aggrVal = results.aggr[yr];
                   const currentAgeAtProjection = inputs.currentAge + (parseInt(yr) - inputs.startYear);
-                  const currentYearInProjection = parseInt(yr); // Pass the current year as integer
+                  const currentYearInProjection = parseInt(yr);
 
                   return (
                     <tr key={yr} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
@@ -577,11 +562,11 @@ Good luck on your FIRE journey! 🔥`
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(results.yearlyExpenses[yr] || 0)}</td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(consVal)}</td>
                       <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
-                        {getMilestoneStatus(consVal, results.targets, 'conservative', currentYearInProjection, results.firstAchievementYears, currentAgeAtProjection, inputs.desiredFIREAge)}
+                        {getMilestoneStatus(consVal, results.targets, 'conservative', currentYearInProjection, results.firstAchievementYears)}
                       </td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(aggrVal)}</td>
                       <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
-                        {getMilestoneStatus(aggrVal, results.targets, 'aggressive', currentYearInProjection, results.firstAchievementYears, currentAgeAtProjection, inputs.desiredFIREAge)}
+                        {getMilestoneStatus(aggrVal, results.targets, 'aggressive', currentYearInProjection, results.firstAchievementYears)}
                       </td>
                     </tr>
                   );
