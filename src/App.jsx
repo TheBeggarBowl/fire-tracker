@@ -188,12 +188,21 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
                   monthNames.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
               </select>
             :
-              <input
-                type="text"
-                value={formatNumberWithCommas(inputs[k], inputs.currency)}
-                onChange={e => update(k, parseFormattedNumber(e.target.value))}
-                className="mt-1 block w-full border rounded px-2 py-1"
-              />
+              {["monthlyExpense", "sip", "currentNetWorth"].includes(k) ? (
+  <input
+    type="text"
+    value={formatNumberWithCommas(inputs[k], inputs.currency)}
+    onChange={e => update(k, parseFormattedNumber(e.target.value))}
+    className="mt-1 block w-full border rounded px-2 py-1"
+  />
+) : (
+  <input
+    type="number"
+    value={inputs[k]}
+    onChange={e => update(k, e.target.value)}
+    className="mt-1 block w-full border rounded px-2 py-1"
+  />
+)}
 
             }
           </div>
@@ -249,13 +258,18 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr]||0)}</td>
                 <td className="border px-2 py-1">{fmt(val)}</td>
                 <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
-                <td className="border px-2 py-1 text-lg">
-                  { val>=results.targets.fatTarget ? fireIcons.fat
-                    : val>=results.targets.fireTarget ? fireIcons.fire
-                    : val>=results.targets.coastTarget ? fireIcons.coast
-                    : val>=results.targets.leanTarget ? fireIcons.lean
-                    : "🧭 Keep going!" }
-                </td>
+                <td className="border px-2 py-1 text-base font-medium">
+  {val >= results.targets.fatTarget
+    ? <span className="text-xl">🐋 Fat FIRE</span>
+    : val >= results.targets.fireTarget
+    ? <span className="text-xl">🔥 FIRE</span>
+    : val >= results.targets.coastTarget
+    ? <span className="text-xl">🦈 Coast</span>
+    : val >= results.targets.leanTarget
+    ? <span className="text-xl">🏋️‍♂️ Lean</span>
+    : <span className="text-sm text-gray-600">🧭 Keep going!</span>}
+</td>
+
               </tr>
             )}
           </tbody>
