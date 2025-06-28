@@ -168,7 +168,7 @@ Good luck on your FIRE journey! 🔥`
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
-      <h1 className="text-center text-3xl font-bold">🔥 The FIRE Tracker 🔥</h1>
+      <h1 className="text-center text-3xl font-bold">🔥 FInancial Independence and Retire Early (FIRE) Tracker 🔥</h1>
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
@@ -225,7 +225,7 @@ Good luck on your FIRE journey! 🔥`
 
       {/* FIRE Progress Table */}
       <div className="bg-gray-100 p-4 rounded">
-        <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current net worth)</h2>
+        <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
         <table className="w-full text-center text-sm mt-2 border">
           <thead className="bg-gray-200">
             <tr>
