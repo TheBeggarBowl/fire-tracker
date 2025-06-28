@@ -6,7 +6,7 @@ const fireIcons = { lean:"🏋️‍♂️", coast:"🦈", fire:"🔥", fat:"�
 const labelMap = {
   currency: "Currency",
   currentAge: "Your Current Age",
-  desiredFIREAge: "Target Age for FIRE",
+  desiredFIREAge: "Target Age for Retirement (FIRE)",
   desiredCoastAge: "Target Age for Coast FIRE",
   monthlyExpense: "Monthly Living Expenses (Today)",
   inflation: "Expected Inflation Rate (%)",
@@ -69,7 +69,7 @@ export default function App() {
   useEffect(() => {
     alert(
 `📢 Disclaimer:
-This tool offers rough projections and not guarantees - Use it at your own discretion. The creator is not responsible for any anomalies.
+This tool offers rough projections and no guaranteed returns - Use it at your own discretion. The creator is not responsible for any anomalies.
 Good luck on your FIRE journey! 🔥`
     );
   }, []);
@@ -170,7 +170,7 @@ Good luck on your FIRE journey! 🔥`
 
       {showIntro && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm">
-          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones like 🏋️‍♂️ Lean FIRE – Retire early with minimal lifestyle, 🦈 Coast FIRE – Stop saving but continue working until retirement age, 🔥 FIRE – Retire early with comfortable standard of living, and 🐋 Fat FIRE – Retire early Luxurious lifestyle. These are rough projections and not financial advice.
+          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones for different scenarios with which you can retire early - 🏋️‍♂️ Lean FIRE – Lean FIRE – Early retirement with frugal lifestyle , 🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement, 🔥 FIRE – Early retirement with comfortable standard of living and 🐋 Fat FIRE – Early retirement with luxurious lifestyle. These are rough projections and not financial advice.
           <button
             className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900"
             onClick={() => setShowIntro(false)}
@@ -184,10 +184,10 @@ Good luck on your FIRE journey! 🔥`
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
-          <li>🏋️‍♂️ Lean FIRE – Retire early with minimal lifestyle</li>
-          <li>🦈 Coast FIRE – Stop saving but continue working until retirement age</li>
-          <li>🔥 FIRE – Retire early with comfortable standard of living</li>
-          <li>🐋 Fat FIRE – Retire early Luxurious lifestyle</li>
+          <li>🏋️‍♂️ Lean FIRE – Early retirement with frugal lifestyle </li>
+          <li>🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement.</li>
+          <li>🔥 FIRE – Early retirement with comfortable standard of living</li>
+          <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle</li>
         </ul>
       </div>
 
