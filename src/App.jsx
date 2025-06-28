@@ -369,17 +369,19 @@ Good luck on your FIRE journey! 🔥`
       </div>
 
       {showIntro && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
-          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence Retire Early</em>. This calculator helps you estimate milestones for different milestones with which you can estimate to retire early - Kindly note these are rough projections and not financial advice.
-          <button
-            className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
-            onClick={() => setShowIntro(false)}
-            aria-label="Dismiss"
-          >
-            ×
-          </button>
-          </div>
-          <div className="text-center mt-3 text-sm text-gray-700 dark:text-gray-300">
+  <>
+    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
+      <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence Retire Early</em>. This calculator helps you estimate milestones for different milestones with which you can estimate to retire early - Kindly note these are rough projections and not financial advice.
+      <button
+        className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
+        onClick={() => setShowIntro(false)}
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
+    </div>
+
+    <div className="text-center mt-3 text-sm text-gray-700 dark:text-gray-300">
       If this tool saved you time or helped your FIRE planning, consider <br />
       <a
         href="https://coff.ee/thebeggarbowl"
@@ -391,7 +393,8 @@ Good luck on your FIRE journey! 🔥`
       </a>
       🙏
     </div>
-      )}
+  </>
+)}
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200">
         <strong>FIRE Milestone Descriptions</strong>
