@@ -67,7 +67,7 @@ export default function App() {
     coast: false,
     fire: false,
     fat: false,
-    all: false, // To track if all FIRE types are achieved
+    all: false,
   });
 
   const [aggressiveMilestonesAchieved, setAggressiveMilestonesAchieved] = useState({
@@ -75,13 +75,13 @@ export default function App() {
     coast: false,
     fire: false,
     fat: false,
-    all: false, // To track if all FIRE types are achieved
+    all: false,
   });
 
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
     calculate();
-    // Reset milestones when inputs change
+    // Reset milestones when inputs change - this is good
     setConservativeMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
     setAggressiveMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
   }, [inputs]);
@@ -190,61 +190,30 @@ Good luck on your FIRE journey! 🔥`
 
   if (!results) return null;
 
-  // Modified milestoneCheck function
-  const milestoneCheck = (val, pathType) => {
-    let currentMilestones;
-    let setMilestones;
-
-    if (pathType === 'conservative') {
-      currentMilestones = conservativeMilestonesAchieved;
-      setMilestones = setConservativeMilestonesAchieved;
-    } else { // aggressive
-      currentMilestones = aggressiveMilestonesAchieved;
-      setMilestones = setAggressiveMilestonesAchieved;
-    }
-
+  // Modified milestoneCheck function - now a pure function returning statuses
+  const getMilestoneStatus = (val, targets) => {
     const statuses = [];
-    let updatedMilestones = { ...currentMilestones }; // Create a mutable copy
-
-    if (updatedMilestones.all) {
-        return "🎉 Happy Retirement!";
-    }
-
-    if (val >= results.targets.leanTarget && !updatedMilestones.lean) {
+    if (val >= targets.leanTarget) {
       statuses.push("🏋️‍♂️ Lean FIRE");
-      updatedMilestones.lean = true;
     }
-    if (val >= results.targets.coastTarget && !updatedMilestones.coast) {
+    if (val >= targets.coastTarget) {
       statuses.push("🦈 Coast FIRE");
-      updatedMilestones.coast = true;
     }
-    if (val >= results.targets.fireTarget && !updatedMilestones.fire) {
+    if (val >= targets.fireTarget) {
       statuses.push("🔥 FIRE");
-      updatedMilestones.fire = true;
     }
-    if (val >= results.targets.fatTarget && !updatedMilestones.fat) {
+    if (val >= targets.fatTarget) {
       statuses.push("🐋 Fat FIRE");
-      updatedMilestones.fat = true;
     }
 
-    // Check if all milestones are achieved for this path
-    if (updatedMilestones.lean && updatedMilestones.coast && updatedMilestones.fire && updatedMilestones.fat && !updatedMilestones.all) {
-      statuses.push("🎉 Happy Retirement!");
-      updatedMilestones.all = true;
-    }
-
-    // Update the state for the current path
-    if (JSON.stringify(currentMilestones) !== JSON.stringify(updatedMilestones)) {
-        setMilestones(updatedMilestones);
-    }
-
-    if (statuses.length > 0) {
+    if (statuses.length === 4) { // All 4 types achieved
+      return "🎉 Happy Retirement!";
+    } else if (statuses.length > 0) {
       return statuses.join(", ");
     } else {
       return "🧭 Keep going!";
     }
   };
-
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
@@ -407,11 +376,11 @@ Good luck on your FIRE journey! 🔥`
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
                 <td className="border px-2 py-1">{fmt(consVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left">
-                  {milestoneCheck(consVal, 'conservative')}
+                  {getMilestoneStatus(consVal, results.targets)}
                 </td>
                 <td className="border px-2 py-1">{fmt(aggrVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left">
-                  {milestoneCheck(aggrVal, 'aggressive')}
+                  {getMilestoneStatus(aggrVal, results.targets)}
                 </td>
               </tr>
             );
