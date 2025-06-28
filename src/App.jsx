@@ -172,42 +172,47 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(defaultInputs).map(([k]) => (
-          <div key={k}>
-            <label className="block text-sm font-medium">
-              {labelMap[k]}
-            </label>
-            {(k==="currency"||k==="startMonth") ?
-              <select
-                value={inputs[k]}
-                onChange={e => update(k, e.target.value)}
-                className="mt-1 block w-full border rounded px-2 py-1">
-                {k==="currency" ?
-                  <><option value="INR">INR</option><option value="USD">USD</option></>
-                :
-                  monthNames.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
-              </select>
-            :
-              {["monthlyExpense", "sip", "currentNetWorth"].includes(k) ? (
-  <input
-    type="text"
-    value={formatNumberWithCommas(inputs[k], inputs.currency)}
-    onChange={e => update(k, parseFormattedNumber(e.target.value))}
-    className="mt-1 block w-full border rounded px-2 py-1"
-  />
-) : (
-  <input
-    type="number"
-    value={inputs[k]}
-    onChange={e => update(k, e.target.value)}
-    className="mt-1 block w-full border rounded px-2 py-1"
-  />
-)}
+  {Object.entries(defaultInputs).map(([k]) => (
+    <div key={k}>
+      <label className="block text-sm font-medium">
+        {labelMap[k]}
+      </label>
+      {(k === "currency" || k === "startMonth") ? (
+        <select
+          value={inputs[k]}
+          onChange={e => update(k, e.target.value)}
+          className="mt-1 block w-full border rounded px-2 py-1"
+        >
+          {k === "currency" ? (
+            <>
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+            </>
+          ) : (
+            monthNames.map((m, i) => (
+              <option key={i + 1} value={i + 1}>{m}</option>
+            ))
+          )}
+        </select>
+      ) : ["monthlyExpense", "sip", "currentNetWorth"].includes(k) ? (
+        <input
+          type="text"
+          value={formatNumberWithCommas(inputs[k], inputs.currency)}
+          onChange={e => update(k, parseFormattedNumber(e.target.value))}
+          className="mt-1 block w-full border rounded px-2 py-1"
+        />
+      ) : (
+        <input
+          type="number"
+          value={inputs[k]}
+          onChange={e => update(k, e.target.value)}
+          className="mt-1 block w-full border rounded px-2 py-1"
+        />
+      )}
+    </div>
+  ))}
+</div>
 
-            }
-          </div>
-        ))}
-      </div>
 
       {/* FIRE Progress Table */}
       <div className="bg-gray-100 p-4 rounded">
