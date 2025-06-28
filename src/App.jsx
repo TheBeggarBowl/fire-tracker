@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react"; // Added useMemo
+import { useEffect, useState, useMemo } from "react";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fireIcons = { lean: "🏋️‍♂️", coast: "🦈", fire: "🔥", fat: "🐋" };
@@ -75,32 +75,17 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
-  // --- Dark Mode State ---
+  // --- Dark Mode State: Default to Light Mode (false) ---
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem('darkMode');
-    if (savedMode) {
+    if (savedMode !== null) { // Check for explicit saved value
       return JSON.parse(savedMode);
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return false; // Default to light mode if no saved preference
   });
   // -----------------------
 
-  // States to track achieved milestones for *display logic per path*
-  const [conservativeMilestonesAchieved, setConservativeMilestonesAchieved] = useState({
-    lean: false,
-    coast: false,
-    fire: false,
-    fat: false,
-    all: false,
-  });
-
-  const [aggressiveMilestonesAchieved, setAggressiveMilestonesAchieved] = useState({
-    lean: false,
-    coast: false,
-    fire: false,
-    fat: false,
-    all: false,
-  });
+  // REMOVED: conservativeMilestonesAchieved and aggressiveMilestonesAchieved states
 
   // Effect to save inputs to localStorage (runs on ANY input change)
   useEffect(() => {
@@ -148,7 +133,10 @@ Good luck on your FIRE journey! 🔥`
     const messages = {};
     if (inputs.currentAge < 0) messages.currentAge = "Age cannot be negative.";
     if (inputs.desiredFIREAge <= inputs.currentAge) messages.desiredFIREAge = "FIRE Age must be greater than Current Age.";
-    if (inputs.desiredCoastAge < inputs.currentAge || inputs.desiredCoastAge >= inputs.desiredFIREAge) messages.desiredCoastAge = "Coast Age must be between Current Age and FIRE Age.";
+    // Clarified Coast Age validation: Must be strictly greater than Current Age and strictly less than FIRE Age
+    if (inputs.desiredCoastAge <= inputs.currentAge || inputs.desiredCoastAge >= inputs.desiredFIREAge) {
+      messages.desiredCoastAge = "Coast Age must be between Current Age and FIRE Age.";
+    }
     if (inputs.monthlyExpense <= 0) messages.monthlyExpense = "Monthly expenses must be positive.";
     if (inputs.inflation < 0) messages.inflation = "Inflation cannot be negative.";
     if (inputs.currentNetWorth < 0) messages.currentNetWorth = "Current corpus cannot be negative.";
@@ -157,11 +145,7 @@ Good luck on your FIRE journey! 🔥`
     if (inputs.desiredConservativeCAGR < 0) messages.desiredConservativeCAGR = "CAGR cannot be negative.";
     if (inputs.desiredAggressiveCAGR < 0) messages.desiredAggressiveCAGR = "CAGR cannot be negative.";
     if (inputs.retirementTaxRate < 0 || inputs.retirementTaxRate >= 100) messages.retirementTaxRate = "Tax rate must be between 0% and 99.9%.";
-    // Ensure Coast Age is before FIRE Age if both are valid
-    if (inputs.desiredCoastAge >= inputs.desiredFIREAge && inputs.desiredCoastAge > 0 && inputs.desiredFIREAge > 0) {
-      messages.desiredCoastAge = "Coast Age must be less than FIRE Age.";
-    }
-
+    
     return messages;
   }, [inputs]);
 
@@ -193,10 +177,9 @@ Good luck on your FIRE journey! 🔥`
     }
 
     let expenseMultiplierDueToTax = 1;
-    if (retirementTaxRate < 100) { // Should already be handled by validation, but good for safety
+    if (retirementTaxRate < 100) {
       expenseMultiplierDueToTax = 1 / (1 - (retirementTaxRate / 100));
     }
-
 
     // Calculate FIRE targets
     const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
@@ -207,7 +190,8 @@ Good luck on your FIRE journey! 🔥`
     const fatTarget = expAtFIRE * expenseMultiplierDueToTax * 40;
 
     const yearsBetweenCoastAndFire = desiredFIREAge - desiredCoastAge;
-    const coastTarget = fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire);
+    // Ensure yearsBetweenCoastAndFire is not negative or zero to prevent Math.pow issues or illogical calculations
+    const coastTarget = (yearsBetweenCoastAndFire > 0) ? fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire) : fireTarget;
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
@@ -215,39 +199,72 @@ Good luck on your FIRE journey! 🔥`
     const project = (rate) => {
       let port = currentNetWorth;
       const monthlyRate = rate / 12 / 100;
-      let year = startYear, m = startMonth - 1;
+      let currentProjectionYear = startYear;
+      let currentMonthInProjection = startMonth - 1; // 0-indexed month (e.g., Jan = 0, Dec = 11)
       const yearlyTotals = {};
-      yearlyTotals[`${year}`] = port; // Initial portfolio value at the start of the startYear.
 
-      for (let i = 0; i < projectionYears * 12; i++) {
-        port = port * (1 + monthlyRate) + sip;
-        m++;
-        if (m >= 12) {
-          m = 0;
-          year++;
-          yearlyTotals[`${year}`] = port; // Store year-end balance
+      // Calculate for the current (potentially partial) startYear
+      // Simulate months passed for the current year
+      for (let m = currentMonthInProjection; m < 12; m++) {
+          port = port * (1 + monthlyRate) + sip;
+      }
+      yearlyTotals[`${currentProjectionYear}`] = port; // This is the balance at the end of 'startYear'
+
+      // Calculate for full subsequent years up to projectionYears total *from startYear*
+      // Loop from 1 to projectionYears-1 to cover the remaining full years after the (possibly partial) startYear
+      for (let i = 1; i < projectionYears; i++) {
+        currentProjectionYear++; // Move to the next year
+        for (let m = 0; m < 12; m++) { // 12 months for a full year
+          port = port * (1 + monthlyRate) + sip;
         }
+        yearlyTotals[`${currentProjectionYear}`] = port; // Balance at the end of this full year
       }
       return yearlyTotals;
+    };
+
+    const consProjections = project(desiredConservativeCAGR);
+    const aggrProjections = project(desiredAggressiveCAGR);
+
+    // Calculate first achievement years for each milestone for both paths
+    const findFirstAchievementYear = (projections, milestoneType, targets) => {
+      const targetValue = targets[milestoneType];
+      for (const yearStr in projections) {
+        if (projections[yearStr] >= targetValue) {
+          return parseInt(yearStr);
+        }
+      }
+      return null; // Not achieved within projection
+    };
+
+    const firstAchievementYears = {
+      conservative: {
+        lean: findFirstAchievementYear(consProjections, 'leanTarget', targets),
+        coast: findFirstAchievementYear(consProjections, 'coastTarget', targets),
+        fire: findFirstAchievementYear(consProjections, 'fireTarget', targets),
+        fat: findFirstAchievementYear(consProjections, 'fatTarget', targets),
+      },
+      aggressive: {
+        lean: findFirstAchievementYear(aggrProjections, 'leanTarget', targets),
+        coast: findFirstAchievementYear(aggrProjections, 'coastTarget', targets),
+        fire: findFirstAchievementYear(aggrProjections, 'fireTarget', targets),
+        fat: findFirstAchievementYear(aggrProjections, 'fatTarget', targets),
+      }
     };
 
     setResults({
       yearlyExpenses,
       targets,
-      cons: project(desiredConservativeCAGR),
-      aggr: project(desiredAggressiveCAGR)
+      cons: consProjections,
+      aggr: aggrProjections,
+      firstAchievementYears // Store this crucial data in results
     });
-
-    // Reset milestone achievement flags when projection-related inputs change
-    setConservativeMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
-    setAggressiveMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
 
   }, [
     inputs.sip, inputs.currentNetWorth, inputs.startMonth, inputs.startYear,
     inputs.projectionYears, inputs.desiredConservativeCAGR,
     inputs.desiredAggressiveCAGR, inputs.currentAge, inputs.desiredFIREAge,
     inputs.desiredCoastAge, inputs.monthlyExpense, inputs.inflation,
-    inputs.retirementTaxRate, hasValidationErrors // Recalculate if validation state changes
+    inputs.retirementTaxRate, hasValidationErrors
   ]);
 
   // Formatter for currency display
@@ -308,67 +325,42 @@ Good luck on your FIRE journey! 🔥`
   };
 
   // Render nothing until initial calculation is done (and valid)
-  if (!results && !hasValidationErrors) return null; // Only show null initially if no errors and not yet calculated
+  // This ensures we don't render tables with incomplete data.
+  // We still show the inputs even if results are null due to validation errors.
+  if (!results && !hasValidationErrors) return null;
 
 
   // Function to determine and display FIRE status for each projected year
-  const getMilestoneStatus = (val, targets, pathType) => {
-    let currentMilestones;
-    let setMilestones;
+  // This is a PURE function, it does not modify state.
+  const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
+    const milestonesMetForCurrentValue = getMilestoneState(val, targets); // What is met by THIS year's value
 
-    if (pathType === 'conservative') {
-      currentMilestones = conservativeMilestonesAchieved;
-      setMilestones = setConservativeMilestonesAchieved; // CORRECTED: Changed 'Achaged' to 'Achieved'
-    } else {
-      currentMilestones = aggressiveMilestonesAchieved;
-      setMilestones = setAggressiveMilestonesAchieved;
-    }
-
-    if (currentMilestones.all) {
+    // If all milestones are met by the current year's value, show Happy Retirement!
+    if (milestonesMetForCurrentValue.all) {
       return "🎉 Happy Retirement!";
     }
 
-    const milestonesCurrentlyMet = getMilestoneState(val, targets); // Use the pure function
-    const achievedThisYear = [];
-    let updatedMilestones = { ...currentMilestones };
+    // Determine the highest milestone achieved by *this current value* (not historical)
+    const achievedThisYearByValue = [];
+    if (milestonesMetForCurrentValue.fat) achievedThisYearByValue.push("🐋 Fat FIRE");
+    else if (milestonesMetForCurrentValue.fire) achievedThisYearByValue.push("🔥 FIRE");
+    else if (milestonesMetForCurrentValue.coast) achievedThisYearByValue.push("🦈 Coast FIRE");
+    else if (milestonesMetForCurrentValue.lean) achievedThisYearByValue.push("🏋️‍♂️ Lean FIRE");
 
-    if (milestonesCurrentlyMet.lean && !updatedMilestones.lean) {
-      achievedThisYear.push("🏋️‍♂️ Lean FIRE");
-      updatedMilestones.lean = true;
-    }
-    if (milestonesCurrentlyMet.coast && !updatedMilestones.coast) {
-      achievedThisYear.push("🦈 Coast FIRE");
-      updatedMilestones.coast = true;
-    }
-    if (milestonesCurrentlyMet.fire && !updatedMilestones.fire) {
-      achievedThisYear.push("🔥 FIRE");
-      updatedMilestones.fire = true;
-    }
-    if (milestonesCurrentlyMet.fat && !updatedMilestones.fat) {
-      achievedThisYear.push("🐋 Fat FIRE");
-      updatedMilestones.fat = true;
+    if (achievedThisYearByValue.length > 0) {
+        return `${achievedThisYearByValue.join(", ")} Achieved`;
     }
 
-    if (milestonesCurrentlyMet.all && !updatedMilestones.all) {
-      achievedThisYear.push("🎉 Happy Retirement!");
-      updatedMilestones.all = true;
-    }
+    // If no milestone is met by the current year's value, check if any were met in a *previous year*
+    // using the 'firstAchievementYears' data.
+    const pathAchievements = firstAchievementYears[pathType];
+    if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) return "🐋 Fat FIRE Achieved (earlier)";
+    if (pathAchievements.fire && currentYearInProjection >= pathAchievements.fire) return "🔥 FIRE Achieved (earlier)";
+    if (pathAchievements.coast && currentYearInProjection >= pathAchievements.coast) return "🦈 Coast FIRE Achieved (earlier)";
+    if (pathAchievements.lean && currentYearInProjection >= pathAchievements.lean) return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
 
-    // Only update state if there was a change to prevent unnecessary re-renders
-    if (JSON.stringify(currentMilestones) !== JSON.stringify(updatedMilestones)) {
-      setMilestones(updatedMilestones);
-    }
-
-    if (achievedThisYear.length > 0) {
-      return achievedThisYear.join(", ");
-    } else {
-      // Prioritize displaying the highest achieved milestone if no new ones this year
-      if (currentMilestones.fat) return "🐋 Fat FIRE Achieved";
-      if (currentMilestones.fire) return "🔥 FIRE Achieved";
-      if (currentMilestones.coast) return "🦈 Coast FIRE Achieved";
-      if (currentMilestones.lean) return "🏋️‍♂️ Lean FIRE Achieved";
-      return "🧭 Keep going!";
-    }
+    // If nothing met so far
+    return "🧭 Keep going!";
   };
 
 
@@ -532,11 +524,9 @@ Good luck on your FIRE journey! 🔥`
 
                     const tgt = results.targets[key];
 
-                    const findYear = (data) =>
-                      Object.entries(data).find(([, val]) => val >= tgt)?.[0] ?? "❌";
-
-                    const yearCons = findYear(results.cons);
-                    const yearAggr = findYear(results.aggr);
+                    // Using the pre-calculated firstAchievementYears from results
+                    const yearCons = results.firstAchievementYears.conservative[fireType] ?? "❌";
+                    const yearAggr = results.firstAchievementYears.aggressive[fireType] ?? "❌";
 
                     return (
                       <tr key={i} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
@@ -568,9 +558,12 @@ Good luck on your FIRE journey! 🔥`
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(results.cons).map(([yr, consVal]) => {
+                {/* Ensure Object.entries starts from the earliest year if you want a complete sequence.
+                    results.cons will have keys as years, which should be iterable in order. */}
+                {Object.entries(results.cons).sort(([yrA], [yrB]) => parseInt(yrA) - parseInt(yrB)).map(([yr, consVal]) => {
                   const aggrVal = results.aggr[yr];
                   const currentAgeAtProjection = inputs.currentAge + (parseInt(yr) - inputs.startYear);
+                  const currentYearInProjection = parseInt(yr); // Pass the current year as integer
 
                   return (
                     <tr key={yr} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
@@ -579,11 +572,11 @@ Good luck on your FIRE journey! 🔥`
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(results.yearlyExpenses[yr] || 0)}</td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(consVal)}</td>
                       <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
-                        {getMilestoneStatus(consVal, results.targets, 'conservative')}
+                        {getMilestoneStatus(consVal, results.targets, 'conservative', currentYearInProjection, results.firstAchievementYears)}
                       </td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(aggrVal)}</td>
                       <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
-                        {getMilestoneStatus(aggrVal, results.targets, 'aggressive')}
+                        {getMilestoneStatus(aggrVal, results.targets, 'aggressive', currentYearInProjection, results.firstAchievementYears)}
                       </td>
                     </tr>
                   );
