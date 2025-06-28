@@ -258,6 +258,41 @@ Good luck on your FIRE journey! 🔥`
           </tbody>
         </table>
       </div>
+{/* Projection Milestone Achievement Table */}
+<div className="bg-gray-100 p-4 rounded">
+  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements</h2>
+  <table className="w-full text-center text-sm mt-2 border">
+    <thead className="bg-gray-200">
+      <tr>
+        <th className="border px-2 py-1">Milestone</th>
+        <th className="border px-2 py-1">Target</th>
+        <th className="border px-2 py-1">Conservative Year</th>
+        <th className="border px-2 py-1">Aggressive Year</th>
+      </tr>
+    </thead>
+    <tbody>
+      {["leanTarget", "coastTarget", "fireTarget", "fatTarget"].map((key, i) => {
+        const label = Object.entries(fireIcons).find(([k]) => key.includes(k))?.[1] + " " + key.replace("Target", "").toUpperCase();
+        const tgt = results.targets[key];
+
+        const findYear = (data) =>
+          Object.entries(data).find(([yr, val]) => val >= tgt)?.[0] ?? "❌";
+
+        const yearCons = findYear(results.cons);
+        const yearAggr = findYear(results.aggr);
+
+        return (
+          <tr key={i}>
+            <td className="border px-2 py-1 text-lg">{label}</td>
+            <td className="border px-2 py-1">{fmt(tgt)}</td>
+            <td className={`border px-2 py-1 ${yearCons === "❌" ? "text-red-600" : ""}`}>{yearCons}</td>
+            <td className={`border px-2 py-1 ${yearAggr === "❌" ? "text-red-600" : ""}`}>{yearAggr}</td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
 
       <div>
         <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
