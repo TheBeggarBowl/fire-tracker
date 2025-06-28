@@ -18,6 +18,7 @@ const labelMap = {
   desiredConservativeCAGR: "Conservative Growth Rate (%)",
   desiredAggressiveCAGR: "Aggressive Growth Rate (%)"
 };
+
 const formatNumberWithCommas = (value, currency) => {
   const locale = currency === "INR" ? "en-IN" : "en-US";
   const number = Number(value.toString().replace(/,/g, ""));
@@ -58,6 +59,7 @@ export default function App() {
   });
 
   const [results, setResults] = useState(null);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     Object.entries(inputs).forEach(([k,v]) => localStorage.setItem(k, JSON.stringify(v)));
@@ -100,29 +102,24 @@ Good luck on your FIRE journey! 🔥`
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
     const project = (rate) => {
-  let port = currentNetWorth;
-  const monthlyRate = rate / 12 / 100;
-  let year = startYear, m = startMonth - 1;
-  const yearlyTotals = {};
-
-  // Log initial value
-  yearlyTotals[`${year}`] = port;
-
-  for (let i = 0; i < projectionYears * 12; i++) {
-    port = port * (1 + monthlyRate) + sip;
-    m++;
-    if (m >= 12) {
-      m = 0;
-      year++;
-    }
-    // Record at end of year (Dec) or at last step
-    if (m === 11 || i === projectionYears * 12 - 1) {
+      let port = currentNetWorth;
+      const monthlyRate = rate / 12 / 100;
+      let year = startYear, m = startMonth - 1;
+      const yearlyTotals = {};
       yearlyTotals[`${year}`] = port;
-    }
-  }
-
-  return yearlyTotals;
-};
+      for (let i = 0; i < projectionYears * 12; i++) {
+        port = port * (1 + monthlyRate) + sip;
+        m++;
+        if (m >= 12) {
+          m = 0;
+          year++;
+        }
+        if (m === 11 || i === projectionYears * 12 - 1) {
+          yearlyTotals[`${year}`] = port;
+        }
+      }
+      return yearlyTotals;
+    };
 
     setResults({
       yearlyExpenses,
@@ -132,20 +129,19 @@ Good luck on your FIRE journey! 🔥`
     });
   };
 
- const fmt = (v) => {
-  const cur = inputs.currency;
-  const sym = cur === "INR" ? "₹" : "$";
-
-  if (cur === "INR") {
-    if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
-    if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
-    return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-  } else {
-    if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
-    if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
-    return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  }
-};
+  const fmt = (v) => {
+    const cur = inputs.currency;
+    const sym = cur === "INR" ? "₹" : "$";
+    if (cur === "INR") {
+      if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
+      if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
+      return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+    } else {
+      if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
+      if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
+      return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+    }
+  };
 
   const calcFIRE = () => {
     const now = inputs.currentNetWorth;
@@ -164,32 +160,26 @@ Good luck on your FIRE journey! 🔥`
     });
   };
 
-  const [showIntro, setShowIntro] = useState(true);
+  if (!results) return null;
 
-if (!results) return null;
+  return (
+    <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
+      <h1 className="text-center text-3xl font-bold">
+        🔥 FInancial Independence and Retire Early (FIRE) Tracker 🔥
+      </h1>
 
-return (
-  <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
-    <h1 className="text-center text-3xl font-bold">
-      🔥 FInancial Independence and Retire Early (FIRE) Tracker 🔥
-    </h1>
-
-    {showIntro && (
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm">
-        <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones like Lean FIRE (minimalist lifestyle), Coast FIRE (no more investing), FIRE (comfortable retirement), and Fat FIRE (luxury retirement). These are rough projections and not financial advice.
-        <button
-          className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900"
-          onClick={() => setShowIntro(false)}
-          aria-label="Dismiss"
-        >
-          ×
-        </button>
-      </div>
-    )}
-
-    {/* ...rest of your content */}
-  </div>
-);
+      {showIntro && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm">
+          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones like Lean FIRE (minimalist lifestyle), Coast FIRE (no more investing), FIRE (comfortable retirement), and Fat FIRE (luxury retirement). These are rough projections and not financial advice.
+          <button
+            className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900"
+            onClick={() => setShowIntro(false)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
@@ -202,49 +192,45 @@ return (
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-  {Object.entries(defaultInputs).map(([k]) => (
-    <div key={k}>
-      <label className="block text-sm font-medium">
-        {labelMap[k]}
-      </label>
-      {(k === "currency" || k === "startMonth") ? (
-        <select
-          value={inputs[k]}
-          onChange={e => update(k, e.target.value)}
-          className="mt-1 block w-full border rounded px-2 py-1"
-        >
-          {k === "currency" ? (
-            <>
-              <option value="INR">INR</option>
-              <option value="USD">USD</option>
-            </>
-          ) : (
-            monthNames.map((m, i) => (
-              <option key={i + 1} value={i + 1}>{m}</option>
-            ))
-          )}
-        </select>
-      ) : ["monthlyExpense", "sip", "currentNetWorth"].includes(k) ? (
-        <input
-          type="text"
-          value={formatNumberWithCommas(inputs[k], inputs.currency)}
-          onChange={e => update(k, parseFormattedNumber(e.target.value))}
-          className="mt-1 block w-full border rounded px-2 py-1"
-        />
-      ) : (
-        <input
-          type="number"
-          value={inputs[k]}
-          onChange={e => update(k, e.target.value)}
-          className="mt-1 block w-full border rounded px-2 py-1"
-        />
-      )}
-    </div>
-  ))}
-</div>
+        {Object.entries(defaultInputs).map(([k]) => (
+          <div key={k}>
+            <label className="block text-sm font-medium">{labelMap[k]}</label>
+            {(k === "currency" || k === "startMonth") ? (
+              <select
+                value={inputs[k]}
+                onChange={e => update(k, e.target.value)}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              >
+                {k === "currency" ? (
+                  <>
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                  </>
+                ) : (
+                  monthNames.map((m, i) => (
+                    <option key={i + 1} value={i + 1}>{m}</option>
+                  ))
+                )}
+              </select>
+            ) : ["monthlyExpense", "sip", "currentNetWorth"].includes(k) ? (
+              <input
+                type="text"
+                value={formatNumberWithCommas(inputs[k], inputs.currency)}
+                onChange={e => update(k, parseFormattedNumber(e.target.value))}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              />
+            ) : (
+              <input
+                type="number"
+                value={inputs[k]}
+                onChange={e => update(k, e.target.value)}
+                className="mt-1 block w-full border rounded px-2 py-1"
+              />
+            )}
+          </div>
+        ))}
+      </div>
 
-
-      {/* FIRE Progress Table */}
       <div className="bg-gray-100 p-4 rounded">
         <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
         <table className="w-full text-center text-sm mt-2 border">
@@ -273,7 +259,6 @@ return (
         </table>
       </div>
 
-      {/* Projection Summary */}
       <div>
         <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
         <table className="w-full text-sm mt-2 text-center border">
@@ -294,17 +279,16 @@ return (
                 <td className="border px-2 py-1">{fmt(val)}</td>
                 <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
                 <td className="border px-2 py-1 text-base font-medium">
-  {val >= results.targets.fatTarget
-    ? <span className="text-xl">🐋 Fat FIRE</span>
-    : val >= results.targets.fireTarget
-    ? <span className="text-xl">🔥 FIRE</span>
-    : val >= results.targets.coastTarget
-    ? <span className="text-xl">🦈 Coast</span>
-    : val >= results.targets.leanTarget
-    ? <span className="text-xl">🏋️‍♂️ Lean</span>
-    : <span className="text-sm text-gray-600">🧭 Keep going!</span>}
-</td>
-
+                  {val >= results.targets.fatTarget
+                    ? <span className="text-xl">🐋 Fat FIRE</span>
+                    : val >= results.targets.fireTarget
+                    ? <span className="text-xl">🔥 FIRE</span>
+                    : val >= results.targets.coastTarget
+                    ? <span className="text-xl">🦈 Coast</span>
+                    : val >= results.targets.leanTarget
+                    ? <span className="text-xl">🏋️‍♂️ Lean</span>
+                    : <span className="text-sm text-gray-600">🧭 Keep going!</span>}
+                </td>
               </tr>
             )}
           </tbody>
