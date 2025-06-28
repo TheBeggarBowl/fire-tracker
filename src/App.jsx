@@ -51,15 +51,15 @@ export default function App() {
     desiredFIREAge: 50,
     desiredCoastAge: 45,
     monthlyExpense: 100000,
-    inflation: 6,
+    inflation: 5,
     startMonth: currentMonth,
     startYear: currentYear,
     currentNetWorth: 15000000,
     sip: 100000,
     projectionYears: 20,
-    desiredConservativeCAGR: 12,
-    desiredAggressiveCAGR: 20,
-    retirementTaxRate: 0,
+    desiredConservativeCAGR: 10,
+    desiredAggressiveCAGR: 18,
+    retirementTaxRate: 30,
   };
 
   const [inputs, setInputs] = useState(() => {
@@ -370,7 +370,7 @@ Good luck on your FIRE journey! 🔥`
 
       {showIntro && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
-          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones for different scenarios with which you can retire early - 🏋️‍♂️ Lean FIRE – Lean FIRE – Early retirement with frugal lifestyle , 🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement, 🔥 FIRE – Early retirement with comfortable standard of living and 🐋 Fat FIRE – Early retirement with luxurious lifestyle. These are rough projections and not financial advice.
+          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence Retire Early</em>. This calculator helps you estimate milestones for different milestones with which you can estimate to retire early - Kindly note these are rough projections and not financial advice. If you liked this, you can buy me a coffee. Information at the bottom of the page.
           <button
             className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
             onClick={() => setShowIntro(false)}
@@ -558,6 +558,18 @@ Good luck on your FIRE journey! 🔥`
           </div>
         </>
       )}
-    </div>
+    <div className="text-center mt-8 text-sm text-gray-700 dark:text-gray-300">
+  If this tool saved you time or helped your FIRE planning, consider <br />
+  <a
+    href="https://coff.ee/thebeggarbowl"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center text-yellow-800 dark:text-yellow-300 hover:underline mt-1"
+  >
+    ☕ buying me a coffee
+  </a>
+  🙏
+</div>
+</div>
   );
 }
