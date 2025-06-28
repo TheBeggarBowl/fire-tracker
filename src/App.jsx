@@ -308,52 +308,55 @@ Good luck on your FIRE journey! 🔥`
     </tbody>
   </table>
 </div>
-<div>
-  <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
-  <table className="w-full text-sm mt-2 text-center border">
-    <thead className="bg-gray-200">
-      <tr>
-        <th className="border px-2 py-1">Year</th>
-        <th className="border px-2 py-1">Expenses</th>
-        <th className="border px-2 py-1">Conservative Growth</th>
-        <th className="border px-2 py-1">FIRE Status (Cons)</th>
-        <th className="border px-2 py-1">Aggressive Growth</th>
-        <th className="border px-2 py-1">FIRE Status (Aggr)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {Object.entries(results.cons).map(([yr, consVal]) => {
-        const aggrVal = results.aggr[yr];
-        const year = parseInt(yr);
-
-        const milestoneCheck = (val) => {
-          const statuses = [];
-          if (val >= results.targets.leanTarget) statuses.push("🏋️‍♂️ Lean FIRE");
-          if (val >= results.targets.coastTarget) statuses.push("🦈 Coast FIRE");
-          if (val >= results.targets.fireTarget) statuses.push("🔥 FIRE");
-          if (val >= results.targets.fatTarget) statuses.push("🐋 Fat FIRE");
-
-          const hasRetired = val >= results.targets.fireTarget && val >= results.targets.fatTarget;
-          if (hasRetired) statuses.push("🎉 Happy Retirement!");
-
-          return statuses.length > 0 ? statuses.join(", ") : "🧭 Keep going!";
-        };
-
-        return (
-          <tr key={yr}>
-            <td className="border px-2 py-1">{yr}</td>
-            <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
-            <td className="border px-2 py-1">{fmt(consVal)}</td>
-            <td className="border px-2 py-1 text-sm text-left">
-              {milestoneCheck(consVal)}
-            </td>
-            <td className="border px-2 py-1">{fmt(aggrVal)}</td>
-            <td className="border px-2 py-1 text-sm text-left">
-              {milestoneCheck(aggrVal)}
-            </td>
+function App() {
+  return (
+    <div> {/* ← This was missing */}
+      <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
+      <table className="w-full text-sm mt-2 text-center border">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border px-2 py-1">Year</th>
+            <th className="border px-2 py-1">Expenses</th>
+            <th className="border px-2 py-1">Conservative Growth</th>
+            <th className="border px-2 py-1">FIRE Status (Cons)</th>
+            <th className="border px-2 py-1">Aggressive Growth</th>
+            <th className="border px-2 py-1">FIRE Status (Aggr)</th>
           </tr>
-        );
-      })}
-    </tbody>
-  </table>
-</div>
+        </thead>
+        <tbody>
+          {Object.entries(results.cons).map(([yr, consVal]) => {
+            const aggrVal = results.aggr[yr];
+            const milestoneCheck = (val) => {
+              const statuses = [];
+              if (val >= results.targets.leanTarget) statuses.push("🏋️‍♂️ Lean FIRE");
+              if (val >= results.targets.coastTarget) statuses.push("🦈 Coast FIRE");
+              if (val >= results.targets.fireTarget) statuses.push("🔥 FIRE");
+              if (val >= results.targets.fatTarget) statuses.push("🐋 Fat FIRE");
+
+              const hasRetired = val >= results.targets.fireTarget && val >= results.targets.fatTarget;
+              if (hasRetired) statuses.push("🎉 Happy Retirement!");
+
+              return statuses.length > 0 ? statuses.join(", ") : "🧭 Keep going!";
+            };
+
+            return (
+              <tr key={yr}>
+                <td className="border px-2 py-1">{yr}</td>
+                <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
+                <td className="border px-2 py-1">{fmt(consVal)}</td>
+                <td className="border px-2 py-1 text-sm text-left">
+                  {milestoneCheck(consVal)}
+                </td>
+                <td className="border px-2 py-1">{fmt(aggrVal)}</td>
+                <td className="border px-2 py-1 text-sm text-left">
+                  {milestoneCheck(aggrVal)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div> // ✅ This now has a matching <div> above
+  );
+}
+
