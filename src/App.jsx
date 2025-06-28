@@ -159,7 +159,7 @@ Good luck on your FIRE journey! 🔥`
     if (inputs.retirementTaxRate < 0 || inputs.retirementTaxRate >= 100) messages.retirementTaxRate = "Tax rate must be between 0% and 99.9%.";
     // Ensure Coast Age is before FIRE Age if both are valid
     if (inputs.desiredCoastAge >= inputs.desiredFIREAge && inputs.desiredCoastAge > 0 && inputs.desiredFIREAge > 0) {
-        messages.desiredCoastAge = "Coast Age must be less than FIRE Age.";
+      messages.desiredCoastAge = "Coast Age must be less than FIRE Age.";
     }
 
     return messages;
@@ -318,7 +318,7 @@ Good luck on your FIRE journey! 🔥`
 
     if (pathType === 'conservative') {
       currentMilestones = conservativeMilestonesAchieved;
-      setMilestones = setConservativeMilestonesAchieved;
+      setMilestones = setConservativeMilestonesAchieved; // CORRECTED: Changed 'Achaged' to 'Achieved'
     } else {
       currentMilestones = aggressiveMilestonesAchieved;
       setMilestones = setAggressiveMilestonesAchieved;
