@@ -320,28 +320,30 @@ Good luck on your FIRE journey! 🔥`
     fat: "🐋 Fat FIRE"
   };
 
-  // 🎉 Happy Retirement — ONLY after Fat FIRE has already been achieved
+  // 🎯 If past FAT FIRE year
   if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
     return "🎉 Happy Retirement!";
   }
 
-  // ✅ In the exact year a milestone is achieved
-  for (let type of fireOrder) {
-    if (pathAchievements[type] === currentYearInProjection) {
-      return `${fireLabels[type]} Achieved`;
-    }
+  // ✅ Show all milestones achieved *in this year*
+  const achievedThisYear = fireOrder
+    .filter(type => pathAchievements[type] === currentYearInProjection)
+    .map(type => `${fireLabels[type]} Achieved`);
+
+  if (achievedThisYear.length > 0) {
+    return achievedThisYear.join(", ");
   }
 
-  // 🎯 Still on the way — what's the next milestone not yet achieved?
+  // 🎯 Still targeting milestones
   for (let type of fireOrder) {
     if (!pathAchievements[type] || currentYearInProjection < pathAchievements[type]) {
       return `🎯 Targeting ${fireLabels[type]}`;
     }
   }
 
-  // Fallback (this shouldn't hit unless something's wrong)
   return "🧭 Keep going!";
 };
+
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans bg-white text-gray-900 dark:bg-gray-800 dark:text-white min-h-screen transition-colors duration-200">
@@ -467,9 +469,9 @@ Good luck on your FIRE journey! 🔥`
                       <td className="border px-2 py-1 text-lg border-gray-300 dark:border-gray-600">{r.label}</td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(r.tgt)}</td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{r.age} / {r.year}</td>
-                      <td className={`border px-2 py-1 ${r.gap >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"} border-gray-300 dark:border-gray-600`}>
-                        {fmt(Math.abs(r.gap))}
-                      </td>
+                      <td className={`border px-2 py-1 border-gray-300 dark:border-gray-600 ${r.gap >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+  {r.gap >= 0 ? `${fmt(Math.abs(r.gap))} Surplus` : `${fmt(Math.abs(r.gap))} Gap`}
+</td>
                       <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{r.need}</td>
                     </tr>
                   )}
