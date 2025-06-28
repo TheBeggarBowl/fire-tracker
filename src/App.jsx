@@ -100,20 +100,29 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
     const project = (rate) => {
-      let port = currentNetWorth;
-      const monthlyRate = rate / 12 / 100;
-      let year = startYear, m = startMonth - 1;
-      const yearlyTotals = {};
-      for (let i = 0; i < projectionYears * 12; i++) {
-        port = port*(1+monthlyRate) + sip;
-        m++;
-        if (m >= 12) { m = 0; year++; }
-        if ((i + 1) % 12 === 0 || i === projectionYears*12 - 1) {
-          yearlyTotals[year] = port;
-        }
-      }
-      return yearlyTotals;
-    };
+  let port = currentNetWorth;
+  const monthlyRate = rate / 12 / 100;
+  let year = startYear, m = startMonth - 1;
+  const yearlyTotals = {};
+
+  // Log initial value
+  yearlyTotals[`${year}`] = port;
+
+  for (let i = 0; i < projectionYears * 12; i++) {
+    port = port * (1 + monthlyRate) + sip;
+    m++;
+    if (m >= 12) {
+      m = 0;
+      year++;
+    }
+    // Record at end of year (Dec) or at last step
+    if (m === 11 || i === projectionYears * 12 - 1) {
+      yearlyTotals[`${year}`] = port;
+    }
+  }
+
+  return yearlyTotals;
+};
 
     setResults({
       yearlyExpenses,
