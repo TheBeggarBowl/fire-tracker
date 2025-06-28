@@ -175,15 +175,6 @@ Good luck on your FIRE journey! 🔥`
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
-    // --- DIAGNOSTIC LOG: Check target values ---
-    console.log("Calculated FIRE Targets (Lean, Coast, FIRE, Fat):", {
-        lean: leanTarget,
-        coast: coastTarget,
-        fire: fireTarget,
-        fat: fatTarget
-    });
-    // ------------------------------------------
-
     const project = (rate, currentAge, desiredFIREAge) => {
       let port = currentNetWorth;
       const monthlyRate = rate / 12 / 100;
@@ -193,16 +184,23 @@ Good luck on your FIRE journey! 🔥`
       const yearlyTotals = {};
 
       for (let m = currentMonthInProjection; m < 12; m++) {
-          const projectedMonthAge = currentAge + (currentProjectionYear - startYear);
-          const sipForThisMonth = (projectedMonthAge < desiredFIREAge) ? sip : 0;
+          const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12); // Age at this month
+          // SIP continues until the end of the year *before* desiredFIREAge is completed.
+          // Example: If desiredFIREAge is 50, SIP stops as you turn 50.
+          // This means, SIP is included for ages 0-49.999...
+          const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0; 
           port = port * (1 + monthlyRate) + sipForThisMonth;
       }
       yearlyTotals[`${currentProjectionYear}`] = port;
 
       for (let i = 1; i < projectionYears; i++) {
         currentProjectionYear++;
-        const projectedYearAge = currentAge + (currentProjectionYear - startYear);
-        const sipForThisYear = (projectedYearAge < desiredFIREAge) ? sip : 0;
+        // SIP for this entire year. It continues as long as the projected age for *any part of this year* is less than desiredFIREAge.
+        // It should stop after the desiredFIREAge is attained.
+        // If desiredFIREAge is 50, SIP should apply until the end of year age 49.
+        // For year 'X', if currentAge + (X - startYear) < desiredFIREAge, then SIP applies.
+        const projectedStartOfYearAge = currentAge + (currentProjectionYear - startYear);
+        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0; 
 
         for (let m = 0; m < 12; m++) {
           port = port * (1 + monthlyRate) + sipForThisYear;
@@ -316,10 +314,15 @@ Good luck on your FIRE journey! 🔥`
     const { lean, coast, fire, fat } = getMilestoneState(val, targets);
     const pathAchievements = firstAchievementYears[pathType];
 
+    // Priority 1: Full Retirement Achieved (based on Fat FIRE being reached)
+    // This implies all previous milestones are also 'achieved earlier'
     if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
         return "🎉 Happy Retirement!";
     }
 
+    // Priority 2: New Milestone Achieved *This Year* (highest to lowest)
+    // Check if the current value meets the fat target. If so, return Fat FIRE.
+    // This order ensures the highest *currently met* milestone is displayed.
     if (fat) {
         return "🐋 Fat FIRE Achieved";
     }
@@ -333,6 +336,9 @@ Good luck on your FIRE journey! 🔥`
         return "🏋️‍♂️ Lean FIRE Achieved";
     }
 
+    // Priority 3: Milestone Achieved *In a Previous Year* (highest to lowest)
+    // Only show "earlier" if it was hit previously AND we haven't hit a *new* milestone this year.
+    // Also, ensure the target milestone year is before the current projection year.
     if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) {
         return "🔥 FIRE Achieved (earlier)";
     }
@@ -343,6 +349,7 @@ Good luck on your FIRE journey! 🔥`
         return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
     }
     
+    // Priority 4: Default
     return "🧭 Keep going!";
   };
 
