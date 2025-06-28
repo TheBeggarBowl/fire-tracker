@@ -321,13 +321,14 @@ Good luck on your FIRE journey! 🔥`
     const year = parseInt(yr);
 
     const milestoneCheck = (val) => {
-      const statuses = [];
-      if (val >= results.targets.fatTarget) statuses.push("🐋 Fat FIRE");
-      else if (val >= results.targets.fireTarget) statuses.push("🔥 FIRE");
-      else if (val >= results.targets.coastTarget) statuses.push("🦈 Coast FIRE");
-      else if (val >= results.targets.leanTarget) statuses.push("🏋️‍♂️ Lean FIRE");
-      return statuses.length > 0 ? statuses.join(", ") : "🧭 Keep going!";
-    };
+  const statuses = [];
+  if (val >= results.targets.leanTarget) statuses.push("🏋️‍♂️ Lean FIRE");
+  if (val >= results.targets.coastTarget) statuses.push("🦈 Coast FIRE");
+  if (val >= results.targets.fireTarget) statuses.push("🔥 FIRE");
+  if (val >= results.targets.fatTarget) statuses.push("🐋 Fat FIRE");
+
+  return statuses.length > 0 ? statuses.join(", ") : "🧭 Keep going!";
+};
 
     const consDone = consVal >= results.targets.fatTarget && consVal >= results.targets.fireTarget;
     const aggrDone = aggrVal >= results.targets.fatTarget && aggrVal >= results.targets.fireTarget;
