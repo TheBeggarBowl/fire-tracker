@@ -371,7 +371,7 @@ Good luck on your FIRE journey! 🔥`
       {showIntro && (
   <>
     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
-      <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones for different milestones with which you can estimate to retire early - Kindly note these are rough projections and not financial advice.
+      <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate key milestones on your path to early retirement. Please note these are rough projections and not financial advice.
       <button
         className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
         onClick={() => setShowIntro(false)}
