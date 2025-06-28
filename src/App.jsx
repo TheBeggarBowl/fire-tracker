@@ -1,4 +1,3 @@
-```javascript
 import { useEffect, useState } from "react";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -17,7 +16,8 @@ const labelMap = {
   sip: "Monthly Investment Contribution",
   projectionYears: "Projection Duration (Years)",
   desiredConservativeCAGR: "Conservative Growth Rate (%)",
-  desiredAggressiveCAGR: "Aggressive Growth Rate (%)"
+  desiredAggressiveCAGR: "Aggressive Growth Rate (%)",
+  retirementTaxRate: "Tax at Retirement (%)" // NEW: Tax at Retirement input label
 };
 
 const formatNumberWithCommas = (value, currency) => {
@@ -50,6 +50,7 @@ export default function App() {
     projectionYears: 20,
     desiredConservativeCAGR: 12,
     desiredAggressiveCAGR: 20,
+    retirementTaxRate: 0, // NEW: Default retirement tax rate
   };
 
   const [inputs, setInputs] = useState(() => {
@@ -124,7 +125,12 @@ Good luck on your FIRE journey! 🔥`
 
   // Handler to update input state
   const update = (k, v) => {
-    const numericKeys = ["monthlyExpense", "sip", "currentNetWorth", "inflation", "projectionYears", "desiredConservativeCAGR", "desiredAggressiveCAGR", "currentAge", "desiredFIREAge", "desiredCoastAge"];
+    const numericKeys = [
+      "monthlyExpense", "sip", "currentNetWorth", "inflation",
+      "projectionYears", "desiredConservativeCAGR",
+      "desiredAggressiveCAGR", "currentAge", "desiredFIREAge",
+      "desiredCoastAge", "retirementTaxRate" // NEW: Added retirementTaxRate
+    ];
     const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
 
     setInputs(prev => ({
@@ -139,7 +145,8 @@ Good luck on your FIRE journey! 🔥`
       sip, currentNetWorth, startMonth, startYear,
       projectionYears, desiredConservativeCAGR,
       desiredAggressiveCAGR, currentAge, desiredFIREAge,
-      desiredCoastAge, monthlyExpense, inflation
+      desiredCoastAge, monthlyExpense, inflation,
+      retirementTaxRate // NEW: Destructure retirementTaxRate
     } = inputs;
 
     // Calculate yearly expenses with inflation
@@ -150,14 +157,30 @@ Good luck on your FIRE journey! 🔥`
       exp *= 1 + inflation / 100; // Inflate for the next year
     }
 
+    // NEW: Calculate the effective multiplier for expenses due to tax
+    // This assumes tax is applied to the withdrawal amount needed to cover expenses.
+    // E.g., if you need $100 and tax is 10%, you need to withdraw $100 / (1 - 0.10) = $111.11
+    // If retirementTaxRate is 0, this multiplier is 1.
+    let expenseMultiplierDueToTax = 1;
+    if (retirementTaxRate >= 0 && retirementTaxRate < 100) { // Tax rate must be between 0 and 100% (exclusive of 100%)
+      expenseMultiplierDueToTax = 1 / (1 - (retirementTaxRate / 100));
+    } else if (retirementTaxRate >= 100) {
+      // If tax rate is 100% or more, it's impossible to cover expenses this way.
+      // Set to a very large number or handle as an error if needed. For now, use 1.
+      // This is an edge case, practically tax won't be 100% on net income.
+      expenseMultiplierDueToTax = Infinity;
+    }
+
+
     // Calculate FIRE targets
     const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
-    const expAtFIRE = yearlyExpenses[targetYearFIRE]; // Expenses at target FIRE age
+    const expAtFIRE = yearlyExpenses[targetYearFIRE]; // Expenses at target FIRE age (pre-tax)
 
-    // Targets based on multiples of annual expenses at FIRE age
-    const leanTarget = expAtFIRE * 15;
-    const fireTarget = expAtFIRE * 25; // This is the calculated FIRE target at desiredFIREAge
-    const fatTarget = expAtFIRE * 40;
+    // Targets based on multiples of annual expenses at FIRE age, adjusted for tax.
+    // The corpus needs to be large enough to generate income to cover expenses AND taxes on that income.
+    const leanTarget = expAtFIRE * expenseMultiplierDueToTax * 15;
+    const fireTarget = expAtFIRE * expenseMultiplierDueToTax * 25; // This is the calculated FIRE target at desiredFIREAge
+    const fatTarget = expAtFIRE * expenseMultiplierDueToTax * 40;
 
     // Coast FIRE target: Calculate future FIRE target and discount it back to Coast FIRE age
     // This is the amount needed at desiredCoastAge to grow to fireTarget by desiredFIREAge,
@@ -220,7 +243,6 @@ Good luck on your FIRE journey! 🔥`
   // Calculates current FIRE progress
   const calcFIRE = () => {
     const currentCorpus = inputs.currentNetWorth;
-    // const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge; // Not directly used in the loop below
     const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets; // Assumes results is not null here
 
     // Data for the current progress table
@@ -241,14 +263,14 @@ Good luck on your FIRE journey! 🔥`
       if (gap >= 0) {
         need = "Achieved ✅";
       } else if (effectiveYears <= 0 || currentCorpus <= 0 || tgt <= 0) {
-        // Cannot calculate CAGR if years are non-positive or corpus/target are non-positive
+        // Cannot calculate CAGR if years are non-positive or corpus/target are non-positive.
+        // Also if currentCorpus or tgt are zero or negative, Math.pow can yield NaN/Infinity.
         need = "N/A";
-      } else if (tgt < currentCorpus) { // This case should be caught by gap >= 0 but as a double check
-          need = "Achieved ✅";
       } else {
         const base = tgt / currentCorpus;
         if (base < 0 && !Number.isInteger(1 / effectiveYears)) {
-          // Cannot reliably calculate real CAGR if base is negative and exponent is fractional
+          // Cannot reliably calculate real CAGR if base is negative and exponent is fractional.
+          // This typically means currentCorpus is negative and target is positive, or vice-versa.
           need = "N/A (Neg. Corpus/Target)";
         } else {
           // Formula: ((Target / Current)^(1/Years) - 1) * 100
@@ -543,4 +565,3 @@ Good luck on your FIRE journey! 🔥`
     </div>
   );
 }
-```
