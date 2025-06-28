@@ -85,8 +85,6 @@ export default function App() {
   });
   // -----------------------
 
-  // REMOVED: conservativeMilestonesAchieved and aggressiveMilestonesAchieved states
-
   // Effect to save inputs to localStorage (runs on ANY input change)
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
@@ -335,31 +333,45 @@ Good luck on your FIRE journey! 🔥`
   const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
     const milestonesMetForCurrentValue = getMilestoneState(val, targets); // What is met by THIS year's value
 
-    // If all milestones are met by the current year's value, show Happy Retirement!
-    if (milestonesMetForCurrentValue.all) {
-      return "🎉 Happy Retirement!";
-    }
+    // Helper to get the status message based on milestones met by the current value
+    const getMilestoneStatusMessage = (metMilestones) => {
+        const achievedStrings = [];
 
-    // Determine the highest milestone achieved by *this current value* (not historical)
-    const achievedThisYearByValue = [];
-    if (milestonesMetForCurrentValue.fat) achievedThisYearByValue.push("🐋 Fat FIRE");
-    else if (milestonesMetForCurrentValue.fire) achievedThisYearByValue.push("🔥 FIRE");
-    else if (milestonesMetForCurrentValue.coast) achievedThisYearByValue.push("🦈 Coast FIRE");
-    else if (milestonesMetForCurrentValue.lean) achievedThisYearByValue.push("🏋️‍♂️ Lean FIRE");
+        // Check in descending order of ambition
+        if (metMilestones.fat) achievedStrings.push("🐋 Fat FIRE");
+        else if (metMilestones.fire) achievedStrings.push("🔥 FIRE");
+        else if (metMilestones.coast) achievedStrings.push("🦈 Coast FIRE");
+        else if (metMilestones.lean) achievedStrings.push("🏋️‍♂️ Lean FIRE");
 
-    if (achievedThisYearByValue.length > 0) {
-        return `${achievedThisYearByValue.join(", ")} Achieved`;
-    }
+        if (metMilestones.all) {
+            return "🎉 Happy Retirement!"; // If all (including Fat) are met for this value
+        } else if (achievedStrings.length > 0) {
+            return `${achievedStrings.join(", ")} Achieved`; // Highest single milestone achieved by this value
+        }
+        return null; // No milestone met by current value
+    };
 
-    // If no milestone is met by the current year's value, check if any were met in a *previous year*
-    // using the 'firstAchievementYears' data.
+    // 1. Check if Fat FIRE (and therefore all) is achieved in THIS or a PRIOR YEAR for this path.
+    // This takes precedence for showing "Happy Retirement!"
     const pathAchievements = firstAchievementYears[pathType];
-    if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) return "🐋 Fat FIRE Achieved (earlier)";
+    if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
+        return "🎉 Happy Retirement!";
+    }
+
+    // 2. If not "Happy Retirement", check if any milestone is currently achieved by the *current year's value*.
+    const currentStatusMessage = getMilestoneStatusMessage(milestonesMetForCurrentValue);
+    if (currentStatusMessage) {
+        return currentStatusMessage;
+    }
+
+    // 3. If no new milestones are met by the current value, check if any were achieved in a *previous year*
+    //    for this path. Prioritize the highest one that has already been achieved.
     if (pathAchievements.fire && currentYearInProjection >= pathAchievements.fire) return "🔥 FIRE Achieved (earlier)";
     if (pathAchievements.coast && currentYearInProjection >= pathAchievements.coast) return "🦈 Coast FIRE Achieved (earlier)";
     if (pathAchievements.lean && currentYearInProjection >= pathAchievements.lean) return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
 
-    // If nothing met so far
+
+    // 4. If none of the above conditions are met, then the user should keep going.
     return "🧭 Keep going!";
   };
 
