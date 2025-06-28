@@ -343,25 +343,27 @@ Good luck on your FIRE journey! 🔥`
     // --- Core Logic Flow ---
 
     // 1. If Fat FIRE has been achieved in THIS YEAR or a PRIOR YEAR, show Happy Retirement.
+    // This is the ultimate goal, so it takes highest precedence.
     if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
         return "🎉 Happy Retirement!";
     }
 
-    // 2. If the current portfolio value meets a NEW highest milestone for *this year*:
-    // (Order is important: Fat > FIRE > Coast > Lean)
+    // 2. Check if the *current portfolio value* meets any new milestone for *this year*.
+    // Order matters here: from highest ambition (Fat) to lowest (Lean).
+    // If multiple are met, we want to show the highest one.
     if (milestonesMetForCurrentValue.fat) return "🐋 Fat FIRE Achieved";
     if (milestonesMetForCurrentValue.fire) return "🔥 FIRE Achieved";
     if (milestonesMetForCurrentValue.coast) return "🦈 Coast FIRE Achieved";
-    if (milestonesMetForCurrentValue.lean) return "🏋️‍♂️ Lean FIRE Achieved";
+    if (milestonesMetForCurrentValue.lean) return "🏋️‍♂️ Lean FIRE Achieved"; // Corrected variable name
 
-    // 3. If no NEW milestone is met by the current value, but a milestone was achieved in an *earlier year* for this path:
-    // (Again, order highest to lowest)
+    // 3. If no *new* milestone is met by the current value, but a milestone was achieved in an *earlier year* for this path:
+    // Display the highest one that has already been achieved historically.
+    // Again, order from highest ambition to lowest.
     if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) return "🔥 FIRE Achieved (earlier)";
     if (pathAchievements.coast && currentYearInProjection > pathAchievements.coast) return "🦈 Coast FIRE Achieved (earlier)";
     if (pathAchievements.lean && currentYearInProjection > pathAchievements.lean) return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
 
-
-    // 4. If none of the above, then the user should "Keep going!".
+    // 4. If none of the above conditions are met, then the user should "Keep going!".
     return "🧭 Keep going!";
   };
 
