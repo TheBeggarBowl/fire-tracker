@@ -238,7 +238,14 @@ Good luck on your FIRE journey! 🔥`
           </div>
         ))}
       </div>
-
+      <div className="text-right mt-4">
+  <button
+    onClick={() => setInputs({ ...defaultInputs })}
+    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+  >
+    Reset to Default
+  </button>
+</div>
       <div className="bg-gray-100 p-4 rounded">
         <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
         <table className="w-full text-center text-sm mt-2 border">
