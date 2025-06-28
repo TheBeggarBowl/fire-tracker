@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fireIcons = { lean: "🏋️‍♂️", coast: "🦈", fire: "🔥", fat: "🐋" };
 
@@ -292,8 +291,8 @@ Good luck on your FIRE journey! 🔥`
     // After checking all individual milestones, check if all are now achieved.
     // This is for the "Happy Retirement!" condition.
     if (updatedMilestones.lean && updatedMilestones.coast && updatedMilestones.fire && updatedMilestones.fat && !updatedMilestones.all) {
-        achievedThisYear.push("🎉 Happy Retirement!"); // Add to current year's achievements for display
-        updatedMilestones.all = true; // Mark all as achieved persistently for future years
+      achievedThisYear.push("🎉 Happy Retirement!"); // Add to current year's achievements for display
+      updatedMilestones.all = true; // Mark all as achieved persistently for future years
     }
 
     // Update the state for the current path if there's any change in achievement flags
@@ -493,6 +492,7 @@ Good luck on your FIRE journey! 🔥`
         <thead className="bg-gray-200 dark:bg-gray-600">
           <tr>
             <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Year</th>
+            <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Age</th> {/* Added Age Column Header */}
             <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Expenses</th>
             <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Conservative Growth</th>
             <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">FIRE Status (Cons)</th>
@@ -503,10 +503,13 @@ Good luck on your FIRE journey! 🔥`
         <tbody>
           {Object.entries(results.cons).map(([yr, consVal]) => {
             const aggrVal = results.aggr[yr];
+            // Calculate age for the current projection year
+            const currentAgeAtProjection = inputs.currentAge + (parseInt(yr) - inputs.startYear);
 
             return (
               <tr key={yr} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-750">
                 <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{yr}</td>
+                <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{currentAgeAtProjection}</td> {/* Added Age Column Data */}
                 <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(results.yearlyExpenses[yr] || 0)}</td>
                 <td className="border px-2 py-1 border-gray-300 dark:border-gray-600">{fmt(consVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left border-gray-300 dark:border-gray-600">
