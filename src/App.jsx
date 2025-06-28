@@ -165,12 +165,12 @@ Good luck on your FIRE journey! 🔥`
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
       <h1 className="text-center text-3xl font-bold">
-        🔥 FInancial Independence and Retire Early (FIRE) Tracker 🔥
+        🔥 Financial Independence and Retire Early (FIRE) Calculator 🔥
       </h1>
 
       {showIntro && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm">
-          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones like Lean FIRE (minimalist lifestyle), Coast FIRE (no more investing), FIRE (comfortable retirement), and Fat FIRE (luxury retirement). These are rough projections and not financial advice.
+          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones like 🏋️‍♂️ Lean FIRE – Retire early with minimal lifestyle, 🦈 Coast FIRE – Stop saving but continue working until retirement age, 🔥 FIRE – Retire early with comfortable standard of living, and 🐋 Fat FIRE – Retire early Luxurious lifestyle. These are rough projections and not financial advice.
           <button
             className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900"
             onClick={() => setShowIntro(false)}
@@ -184,10 +184,10 @@ Good luck on your FIRE journey! 🔥`
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
-          <li>🏋️‍♂️ Lean FIRE – Minimal lifestyle</li>
-          <li>🦈 Coast FIRE – Stop investing, work for expenses</li>
-          <li>🔥 FIRE – Comfortable standard of living</li>
-          <li>🐋 Fat FIRE – Luxurious lifestyle</li>
+          <li>🏋️‍♂️ Lean FIRE – Retire early with minimal lifestyle</li>
+          <li>🦈 Coast FIRE – Stop saving but continue working until retirement age</li>
+          <li>🔥 FIRE – Retire early with comfortable standard of living</li>
+          <li>🐋 Fat FIRE – Retire early Luxurious lifestyle</li>
         </ul>
       </div>
 
