@@ -1,3 +1,4 @@
+```javascript
 import { useEffect, useState } from "react";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -155,12 +156,14 @@ Good luck on your FIRE journey! 🔥`
 
     // Targets based on multiples of annual expenses at FIRE age
     const leanTarget = expAtFIRE * 15;
-    const fireTarget = expAtFIRE * 25;
+    const fireTarget = expAtFIRE * 25; // This is the calculated FIRE target at desiredFIREAge
     const fatTarget = expAtFIRE * 40;
 
     // Coast FIRE target: Calculate future FIRE target and discount it back to Coast FIRE age
-    const futureFireCorpus = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
-    const coastTarget = futureFireCorpus / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
+    // This is the amount needed at desiredCoastAge to grow to fireTarget by desiredFIREAge,
+    // assuming no further contributions and growth at desiredConservativeCAGR.
+    const yearsBetweenCoastAndFire = desiredFIREAge - desiredCoastAge;
+    const coastTarget = fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire);
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
@@ -170,9 +173,13 @@ Good luck on your FIRE journey! 🔥`
       const monthlyRate = rate / 12 / 100;
       let year = startYear, m = startMonth - 1; // monthNames is 0-indexed, startMonth is 1-indexed
       const yearlyTotals = {};
-      yearlyTotals[`${year}`] = port; // Initial portfolio at the start of the first year
+      // Store the initial portfolio value at the beginning of the startYear.
+      // Subsequent entries will be year-end balances.
+      yearlyTotals[`${year}`] = port;
 
       for (let i = 0; i < projectionYears * 12; i++) {
+        // Compound interest on existing portfolio, then add SIP at the end of the month.
+        // This is a common, conservative approach.
         port = port * (1 + monthlyRate) + sip;
         m++;
         if (m >= 12) { // End of a year
@@ -213,7 +220,7 @@ Good luck on your FIRE journey! 🔥`
   // Calculates current FIRE progress
   const calcFIRE = () => {
     const currentCorpus = inputs.currentNetWorth;
-    const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge;
+    // const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge; // Not directly used in the loop below
     const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets; // Assumes results is not null here
 
     // Data for the current progress table
@@ -227,17 +234,26 @@ Good luck on your FIRE journey! 🔥`
     return data.map(([label, tgt, age]) => {
       const gap = currentCorpus - tgt; // Surplus (+) or deficit (-)
       let need;
+
+      const effectiveYears = age - inputs.currentAge; // Years to target age for this specific milestone
+
+      // Improved CAGR calculation robustness
       if (gap >= 0) {
         need = "Achieved ✅";
-      } else if (currentCorpus <= 0) { // Avoid division by zero or negative currentCorpus
-        need = "N/A"; // Or some other appropriate message
-      }
-      else {
-        // Calculate required CAGR to reach target in yearsToFIRE
-        // Formula: ((Target / Current)^(1/Years) - 1) * 100
-        // Ensure yearsToFIRE is positive to avoid issues
-        const effectiveYears = age - inputs.currentAge; // Years to target age for this specific milestone
-        need = effectiveYears > 0 ? `${((Math.pow(tgt / currentCorpus, 1 / effectiveYears) - 1) * 100).toFixed(1)}%` : "N/A";
+      } else if (effectiveYears <= 0 || currentCorpus <= 0 || tgt <= 0) {
+        // Cannot calculate CAGR if years are non-positive or corpus/target are non-positive
+        need = "N/A";
+      } else if (tgt < currentCorpus) { // This case should be caught by gap >= 0 but as a double check
+          need = "Achieved ✅";
+      } else {
+        const base = tgt / currentCorpus;
+        if (base < 0 && !Number.isInteger(1 / effectiveYears)) {
+          // Cannot reliably calculate real CAGR if base is negative and exponent is fractional
+          need = "N/A (Neg. Corpus/Target)";
+        } else {
+          // Formula: ((Target / Current)^(1/Years) - 1) * 100
+          need = `${((Math.pow(base, 1 / effectiveYears) - 1) * 100).toFixed(1)}%`;
+        }
       }
       return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
@@ -527,3 +543,4 @@ Good luck on your FIRE journey! 🔥`
     </div>
   );
 }
+```
