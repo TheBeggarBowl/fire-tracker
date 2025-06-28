@@ -260,7 +260,7 @@ Good luck on your FIRE journey! 🔥`
       </div>
 {/* Projection Milestone Achievement Table */}
 <div className="bg-gray-100 p-4 rounded">
-  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements</h2>
+  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on current retirement corpus + projected returns) </h2>
   <table className="w-full text-center text-sm mt-2 border">
     <thead className="bg-gray-200">
       <tr>
@@ -313,17 +313,31 @@ Good luck on your FIRE journey! 🔥`
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr]||0)}</td>
                 <td className="border px-2 py-1">{fmt(val)}</td>
                 <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
-                <td className="border px-2 py-1 text-base font-medium">
-                  {val >= results.targets.fatTarget
-                    ? <span className="text-xl">🐋 Fat FIRE</span>
-                    : val >= results.targets.fireTarget
-                    ? <span className="text-xl">🔥 FIRE</span>
-                    : val >= results.targets.coastTarget
-                    ? <span className="text-xl">🦈 Coast</span>
-                    : val >= results.targets.leanTarget
-                    ? <span className="text-xl">🏋️‍♂️ Lean</span>
-                    : <span className="text-sm text-gray-600">🧭 Keep going!</span>}
-                </td>
+               <td className="border px-2 py-1 text-sm text-left leading-tight">
+  {(() => {
+    const statusList = [];
+    const year = parseInt(yr);
+    const consVal = val;
+    const aggrVal = results.aggr[yr];
+
+    const milestones = [
+      { label: "🐋 Fat", value: results.targets.fatTarget },
+      { label: "🔥 FIRE", value: results.targets.fireTarget },
+      { label: "🦈 Coast", value: results.targets.coastTarget },
+      { label: "🏋️‍♂️ Lean", value: results.targets.leanTarget },
+    ];
+
+    milestones.forEach(({ label, value }) => {
+      if (consVal >= value) statusList.push(`${label} (Cons)`);
+      else if (aggrVal >= value) statusList.push(`${label} (Aggr)`);
+    });
+
+    return statusList.length > 0
+      ? statusList.map((s, i) => <div key={i}>{s}</div>)
+      : <span className="text-gray-500">🧭 Keep going!</span>;
+  })()}
+</td>
+
               </tr>
             )}
           </tbody>
