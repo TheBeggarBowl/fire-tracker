@@ -63,7 +63,6 @@ export default function App() {
   };
 
   const [inputs, setInputs] = useState(() => {
-    // Initialize inputs from localStorage or default values
     return Object.keys(defaultInputs).reduce((a, k) => {
       a[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
       return a;
@@ -73,21 +72,18 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
-  // Dark Mode State: Default to Light Mode (false)
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem('darkMode');
     if (savedMode !== null) {
       return JSON.parse(savedMode);
     }
-    return false; // Default to light mode if no saved preference
+    return false;
   });
 
-  // Effect to save inputs to localStorage (runs on ANY input change)
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
   }, [inputs]);
 
-  // Dark Mode Effect
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -97,7 +93,6 @@ export default function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  // Effect to show disclaimer alert on initial load
   useEffect(() => {
     alert(
       `📢 Disclaimer:
@@ -106,7 +101,6 @@ Good luck on your FIRE journey! 🔥`
     );
   }, []);
 
-  // Handler to update input state
   const update = (k, v) => {
     const numericKeys = [
       "monthlyExpense", "sip", "currentNetWorth", "inflation",
@@ -122,7 +116,6 @@ Good luck on your FIRE journey! 🔥`
     }));
   };
 
-  // Memoize validation messages for better performance and clear UI
   const validationMessages = useMemo(() => {
     const messages = {};
     if (inputs.currentAge < 0) messages.currentAge = "Age cannot be negative.";
@@ -144,10 +137,9 @@ Good luck on your FIRE journey! 🔥`
 
   const hasValidationErrors = Object.keys(validationMessages).length > 0;
 
-  // Core calculation logic (runs only when relevant inputs change)
   useEffect(() => {
     if (hasValidationErrors) {
-      setResults(null); // Clear results if inputs are invalid
+      setResults(null);
       return;
     }
 
@@ -159,12 +151,11 @@ Good luck on your FIRE journey! 🔥`
       retirementTaxRate
     } = inputs;
 
-    // Calculate yearly expenses with inflation
     const yearlyExpenses = {};
-    let exp = monthlyExpense * 12; // Annual expenses in the start year
+    let exp = monthlyExpense * 12;
     for (let i = 0; i <= projectionYears; i++) {
       yearlyExpenses[startYear + i] = exp;
-      exp *= 1 + inflation / 100; // Inflate for the next year
+      exp *= 1 + inflation / 100;
     }
 
     let expenseMultiplierDueToTax = 1;
@@ -172,9 +163,8 @@ Good luck on your FIRE journey! 🔥`
       expenseMultiplierDueToTax = 1 / (1 - (retirementTaxRate / 100));
     }
 
-    // Calculate FIRE targets
     const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
-    const expAtFIRE = yearlyExpenses[targetYearFIRE]; // Expenses at target FIRE age (pre-tax)
+    const expAtFIRE = yearlyExpenses[targetYearFIRE];
 
     const leanTarget = expAtFIRE * expenseMultiplierDueToTax * 15;
     const fireTarget = expAtFIRE * expenseMultiplierDueToTax * 25;
@@ -185,15 +175,23 @@ Good luck on your FIRE journey! 🔥`
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
-    // Function to project portfolio growth
+    // --- DIAGNOSTIC LOG: Check target values ---
+    console.log("Calculated FIRE Targets (Lean, Coast, FIRE, Fat):", {
+        lean: leanTarget,
+        coast: coastTarget,
+        fire: fireTarget,
+        fat: fatTarget
+    });
+    // ------------------------------------------
+
     const project = (rate, currentAge, desiredFIREAge) => {
       let port = currentNetWorth;
       const monthlyRate = rate / 12 / 100;
       let currentProjectionYear = startYear;
-      let currentMonthInProjection = startMonth - 1; // 0-indexed month (e.g., Jan = 0, Dec = 11)
+      let currentMonthInProjection = startMonth - 1;
+
       const yearlyTotals = {};
 
-      // Calculate for the current (potentially partial) startYear
       for (let m = currentMonthInProjection; m < 12; m++) {
           const projectedMonthAge = currentAge + (currentProjectionYear - startYear);
           const sipForThisMonth = (projectedMonthAge < desiredFIREAge) ? sip : 0;
@@ -201,7 +199,6 @@ Good luck on your FIRE journey! 🔥`
       }
       yearlyTotals[`${currentProjectionYear}`] = port;
 
-      // Calculate for full subsequent years up to projectionYears total *from startYear*
       for (let i = 1; i < projectionYears; i++) {
         currentProjectionYear++;
         const projectedYearAge = currentAge + (currentProjectionYear - startYear);
@@ -218,7 +215,6 @@ Good luck on your FIRE journey! 🔥`
     const consProjections = project(desiredConservativeCAGR, currentAge, desiredFIREAge);
     const aggrProjections = project(desiredAggressiveCAGR, currentAge, desiredFIREAge);
 
-    // Calculate first achievement years for each milestone for both paths
     const findFirstAchievementYear = (projections, milestoneType, targets) => {
       const targetValue = targets[milestoneType];
       for (const yearStr in projections) {
@@ -226,7 +222,7 @@ Good luck on your FIRE journey! 🔥`
           return parseInt(yearStr);
         }
       }
-      return null; // Not achieved within projection
+      return null;
     };
 
     const firstAchievementYears = {
@@ -260,7 +256,6 @@ Good luck on your FIRE journey! 🔥`
     inputs.retirementTaxRate, hasValidationErrors
   ]);
 
-  // Formatter for currency display
   const fmt = (v) => {
     const cur = inputs.currency;
     const sym = cur === "INR" ? "₹" : "$";
@@ -277,7 +272,6 @@ Good luck on your FIRE journey! 🔥`
     }
   };
 
-  // Calculates current FIRE progress
   const calcFIRE = () => {
     if (!results || !results.targets) return [];
 
@@ -318,17 +312,14 @@ Good luck on your FIRE journey! 🔥`
 
   if (!results && !hasValidationErrors) return null;
 
-  // Function to determine and display FIRE status for each projected year
   const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
     const { lean, coast, fire, fat } = getMilestoneState(val, targets);
     const pathAchievements = firstAchievementYears[pathType];
 
-    // Priority 1: Full Retirement Achieved (based on Fat FIRE being reached)
     if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
         return "🎉 Happy Retirement!";
     }
 
-    // Priority 2: New Milestone Achieved *This Year* (highest to lowest)
     if (fat) {
         return "🐋 Fat FIRE Achieved";
     }
@@ -342,7 +333,6 @@ Good luck on your FIRE journey! 🔥`
         return "🏋️‍♂️ Lean FIRE Achieved";
     }
 
-    // Priority 3: Milestone Achieved *In a Previous Year* (highest to lowest)
     if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) {
         return "🔥 FIRE Achieved (earlier)";
     }
@@ -353,7 +343,6 @@ Good luck on your FIRE journey! 🔥`
         return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
     }
     
-    // Priority 4: Default
     return "🧭 Keep going!";
   };
 
@@ -363,7 +352,6 @@ Good luck on your FIRE journey! 🔥`
         <h1 className="text-center text-3xl font-bold flex-grow">
           🔥 Financial Independence and Retire Early (FIRE) Calculator 🔥
         </h1>
-        {/* Dark Mode Toggle Button */}
         <button
           onClick={() => setDarkMode(!darkMode)}
           className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
@@ -405,7 +393,6 @@ Good luck on your FIRE journey! 🔥`
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Input fields */}
         {Object.entries(defaultInputs).map(([k]) => (
           <div key={k}>
             <label className="block text-sm font-medium">{labelMap[k]}</label>
@@ -446,7 +433,6 @@ Good luck on your FIRE journey! 🔥`
             )}
           </div>
         ))}
-        {/* Reset button moved here, inside the grid */}
         <div className="col-span-full text-right mt-4 sm:mt-0">
             <button
                 onClick={() => setInputs({ ...defaultInputs })}
@@ -463,7 +449,6 @@ Good luck on your FIRE journey! 🔥`
         </div>
       )}
 
-      {/* FIRE Progress Table (based on current net worth) */}
       {results && (
         <>
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
@@ -496,7 +481,6 @@ Good luck on your FIRE journey! 🔥`
             </div>
           </div>
 
-          {/* Projection Milestone Achievement Table (Year milestone is first met) */}
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
             <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (Year milestones are first met) </h2>
             <div className="overflow-x-auto">
@@ -534,7 +518,6 @@ Good luck on your FIRE journey! 🔥`
             </div>
           </div>
 
-          {/* Projection Summary Table (Detailed yearly breakdown) */}
           <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm mt-2 text-center border border-gray-300 dark:border-gray-600 min-w-[700px]">
