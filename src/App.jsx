@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const fireIcons = { lean:"🏋️‍♂️", coast:"🦈", fire:"🔥", fat:"🐋" };
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const fireIcons = { lean: "🏋️‍♂️", coast: "🦈", fire: "🔥", fat: "🐋" };
 
 const labelMap = {
   currency: "Currency",
@@ -52,7 +52,7 @@ export default function App() {
   };
 
   const [inputs, setInputs] = useState(() => {
-    return Object.keys(defaultInputs).reduce((a,k)=> {
+    return Object.keys(defaultInputs).reduce((a, k) => {
       a[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
       return a;
     }, {});
@@ -61,28 +61,48 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
+  // New state variables to track achieved milestones
+  const [conservativeMilestonesAchieved, setConservativeMilestonesAchieved] = useState({
+    lean: false,
+    coast: false,
+    fire: false,
+    fat: false,
+    all: false, // To track if all FIRE types are achieved
+  });
+
+  const [aggressiveMilestonesAchieved, setAggressiveMilestonesAchieved] = useState({
+    lean: false,
+    coast: false,
+    fire: false,
+    fat: false,
+    all: false, // To track if all FIRE types are achieved
+  });
+
   useEffect(() => {
-    Object.entries(inputs).forEach(([k,v]) => localStorage.setItem(k, JSON.stringify(v)));
+    Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
     calculate();
+    // Reset milestones when inputs change
+    setConservativeMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
+    setAggressiveMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
   }, [inputs]);
 
   useEffect(() => {
     alert(
-`📢 Disclaimer:
+      `📢 Disclaimer:
 This tool offers rough projections and no guaranteed returns - Use it at your own discretion. The creator is not responsible for any anomalies.
 Good luck on your FIRE journey! 🔥`
     );
   }, []);
 
   const update = (k, v) => {
-  const numericKeys = ["monthlyExpense", "sip", "currentNetWorth", "inflation", "projectionYears", "desiredConservativeCAGR", "desiredAggressiveCAGR", "currentAge", "desiredFIREAge", "desiredCoastAge"];
-  const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
+    const numericKeys = ["monthlyExpense", "sip", "currentNetWorth", "inflation", "projectionYears", "desiredConservativeCAGR", "desiredAggressiveCAGR", "currentAge", "desiredFIREAge", "desiredCoastAge"];
+    const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
 
-  setInputs(prev => ({
-    ...prev,
-    [k]: numericKeys.includes(k) ? Number(cleanedValue) : cleanedValue
-  }));
-};
+    setInputs(prev => ({
+      ...prev,
+      [k]: numericKeys.includes(k) ? Number(cleanedValue) : cleanedValue
+    }));
+  };
 
   const calculate = () => {
     const {
@@ -96,7 +116,7 @@ Good luck on your FIRE journey! 🔥`
     let exp = monthlyExpense * 12;
     for (let i = 0; i <= projectionYears; i++) {
       yearlyExpenses[startYear + i] = exp;
-      exp *= 1 + inflation/100;
+      exp *= 1 + inflation / 100;
     }
 
     const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
@@ -104,8 +124,8 @@ Good luck on your FIRE journey! 🔥`
     const leanTarget = expAtFIRE * 15;
     const fireTarget = expAtFIRE * 25;
     const fatTarget = expAtFIRE * 40;
-    const coastFuture = (monthlyExpense*12)*25 * Math.pow(1 + inflation/100, desiredFIREAge - currentAge);
-    const coastTarget = coastFuture / Math.pow(1 + desiredConservativeCAGR/100, desiredFIREAge - desiredCoastAge);
+    const coastFuture = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
+    const coastTarget = coastFuture / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
@@ -161,14 +181,70 @@ Good luck on your FIRE journey! 🔥`
       ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
       ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
     ];
-    return data.map(([label,tgt,age]) => {
+    return data.map(([label, tgt, age]) => {
       const gap = now - tgt;
-      const need = gap>=0 ? "Achieved ✅" : `${((Math.pow(tgt/now,1/yearsToFIRE)-1)*100).toFixed(1)}%`;
+      const need = gap >= 0 ? "Achieved ✅" : `${((Math.pow(tgt / now, 1 / yearsToFIRE) - 1) * 100).toFixed(1)}%`;
       return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
   };
 
   if (!results) return null;
+
+  // Modified milestoneCheck function
+  const milestoneCheck = (val, pathType) => {
+    let currentMilestones;
+    let setMilestones;
+
+    if (pathType === 'conservative') {
+      currentMilestones = conservativeMilestonesAchieved;
+      setMilestones = setConservativeMilestonesAchieved;
+    } else { // aggressive
+      currentMilestones = aggressiveMilestonesAchieved;
+      setMilestones = setAggressiveMilestonesAchieved;
+    }
+
+    const statuses = [];
+    let updatedMilestones = { ...currentMilestones }; // Create a mutable copy
+
+    if (updatedMilestones.all) {
+        return "🎉 Happy Retirement!";
+    }
+
+    if (val >= results.targets.leanTarget && !updatedMilestones.lean) {
+      statuses.push("🏋️‍♂️ Lean FIRE");
+      updatedMilestones.lean = true;
+    }
+    if (val >= results.targets.coastTarget && !updatedMilestones.coast) {
+      statuses.push("🦈 Coast FIRE");
+      updatedMilestones.coast = true;
+    }
+    if (val >= results.targets.fireTarget && !updatedMilestones.fire) {
+      statuses.push("🔥 FIRE");
+      updatedMilestones.fire = true;
+    }
+    if (val >= results.targets.fatTarget && !updatedMilestones.fat) {
+      statuses.push("🐋 Fat FIRE");
+      updatedMilestones.fat = true;
+    }
+
+    // Check if all milestones are achieved for this path
+    if (updatedMilestones.lean && updatedMilestones.coast && updatedMilestones.fire && updatedMilestones.fat && !updatedMilestones.all) {
+      statuses.push("🎉 Happy Retirement!");
+      updatedMilestones.all = true;
+    }
+
+    // Update the state for the current path
+    if (JSON.stringify(currentMilestones) !== JSON.stringify(updatedMilestones)) {
+        setMilestones(updatedMilestones);
+    }
+
+    if (statuses.length > 0) {
+      return statuses.join(", ");
+    } else {
+      return "🧭 Keep going!";
+    }
+  };
+
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
@@ -239,13 +315,13 @@ Good luck on your FIRE journey! 🔥`
         ))}
       </div>
       <div className="text-right mt-4">
-  <button
-    onClick={() => setInputs({ ...defaultInputs })}
-    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-  >
-    Reset to Default
-  </button>
-</div>
+        <button
+          onClick={() => setInputs({ ...defaultInputs })}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Reset to Default
+        </button>
+      </div>
       <div className="bg-gray-100 p-4 rounded">
         <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
         <table className="w-full text-center text-sm mt-2 border">
@@ -259,12 +335,12 @@ Good luck on your FIRE journey! 🔥`
             </tr>
           </thead>
           <tbody>
-            {calcFIRE().map((r,i)=>
+            {calcFIRE().map((r, i) =>
               <tr key={i}>
                 <td className="border px-2 py-1 text-lg">{r.label}</td>
                 <td className="border px-2 py-1">{fmt(r.tgt)}</td>
                 <td className="border px-2 py-1">{r.age} / {r.year}</td>
-                <td className={`border px-2 py-1 ${r.gap>=0 ? "text-green-600" : "text-red-600"}`}>
+                <td className={`border px-2 py-1 ${r.gap >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {fmt(Math.abs(r.gap))}
                 </td>
                 <td className="border px-2 py-1">{r.need}</td>
@@ -273,87 +349,75 @@ Good luck on your FIRE journey! 🔥`
           </tbody>
         </table>
       </div>
-{/* Projection Milestone Achievement Table */}
-<div className="bg-gray-100 p-4 rounded">
-  <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on current retirement corpus + projected returns) </h2>
-  <table className="w-full text-center text-sm mt-2 border">
-    <thead className="bg-gray-200">
-      <tr>
-        <th className="border px-2 py-1">Milestone</th>
-        <th className="border px-2 py-1">Target</th>
-        <th className="border px-2 py-1">Conservative Year</th>
-        <th className="border px-2 py-1">Aggressive Year</th>
-      </tr>
-    </thead>
-    <tbody>
-      {["leanTarget", "coastTarget", "fireTarget", "fatTarget"].map((key, i) => {
-        const label = Object.entries(fireIcons).find(([k]) => key.includes(k))?.[1] + " " + key.replace("Target", "").toUpperCase();
-        const tgt = results.targets[key];
-
-        const findYear = (data) =>
-          Object.entries(data).find(([yr, val]) => val >= tgt)?.[0] ?? "❌";
-
-        const yearCons = findYear(results.cons);
-        const yearAggr = findYear(results.aggr);
-
-        return (
-          <tr key={i}>
-            <td className="border px-2 py-1 text-lg">{label}</td>
-            <td className="border px-2 py-1">{fmt(tgt)}</td>
-            <td className={`border px-2 py-1 ${yearCons === "❌" ? "text-red-600" : ""}`}>{yearCons}</td>
-            <td className={`border px-2 py-1 ${yearAggr === "❌" ? "text-red-600" : ""}`}>{yearAggr}</td>
-          </tr>
-        );
-      })}
-    </tbody>
-  </table>
-</div>
-    {/* This entire section was mistakenly wrapped in a second App function */}
-    <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
-    <table className="w-full text-sm mt-2 text-center border">
-      <thead className="bg-gray-200">
-        <tr>
-          <th className="border px-2 py-1">Year</th>
-          <th className="border px-2 py-1">Expenses</th>
-          <th className="border px-2 py-1">Conservative Growth</th>
-          <th className="border px-2 py-1">FIRE Status (Cons)</th>
-          <th className="border px-2 py-1">Aggressive Growth</th>
-          <th className="border px-2 py-1">FIRE Status (Aggr)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Object.entries(results.cons).map(([yr, consVal]) => {
-          const aggrVal = results.aggr[yr];
-          const milestoneCheck = (val) => {
-            const statuses = [];
-            if (val >= results.targets.leanTarget) statuses.push("🏋️‍♂️ Lean FIRE");
-            if (val >= results.targets.coastTarget) statuses.push("🦈 Coast FIRE");
-            if (val >= results.targets.fireTarget) statuses.push("🔥 FIRE");
-            if (val >= results.targets.fatTarget) statuses.push("🐋 Fat FIRE");
-
-            const hasRetired = val >= results.targets.fireTarget && val >= results.targets.fatTarget;
-            if (hasRetired) statuses.push("🎉 Happy Retirement!");
-
-            return statuses.length > 0 ? statuses.join(", ") : "🧭 Keep going!";
-          };
-
-          return (
-            <tr key={yr}>
-              <td className="border px-2 py-1">{yr}</td>
-              <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
-              <td className="border px-2 py-1">{fmt(consVal)}</td>
-              <td className="border px-2 py-1 text-sm text-left">
-                {milestoneCheck(consVal)}
-              </td>
-              <td className="border px-2 py-1">{fmt(aggrVal)}</td>
-              <td className="border px-2 py-1 text-sm text-left">
-                {milestoneCheck(aggrVal)}
-              </td>
+      {/* Projection Milestone Achievement Table */}
+      <div className="bg-gray-100 p-4 rounded">
+        <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on current retirement corpus + projected returns) </h2>
+        <table className="w-full text-center text-sm mt-2 border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="border px-2 py-1">Milestone</th>
+              <th className="border px-2 py-1">Target</th>
+              <th className="border px-2 py-1">Conservative Year</th>
+              <th className="border px-2 py-1">Aggressive Year</th>
             </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  </div>
+          </thead>
+          <tbody>
+            {["leanTarget", "coastTarget", "fireTarget", "fatTarget"].map((key, i) => {
+              const label = Object.entries(fireIcons).find(([k]) => key.includes(k))?.[1] + " " + key.replace("Target", "").toUpperCase();
+              const tgt = results.targets[key];
+
+              const findYear = (data) =>
+                Object.entries(data).find(([yr, val]) => val >= tgt)?.[0] ?? "❌";
+
+              const yearCons = findYear(results.cons);
+              const yearAggr = findYear(results.aggr);
+
+              return (
+                <tr key={i}>
+                  <td className="border px-2 py-1 text-lg">{label}</td>
+                  <td className="border px-2 py-1">{fmt(tgt)}</td>
+                  <td className={`border px-2 py-1 ${yearCons === "❌" ? "text-red-600" : ""}`}>{yearCons}</td>
+                  <td className={`border px-2 py-1 ${yearAggr === "❌" ? "text-red-600" : ""}`}>{yearAggr}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {/* Projection Summary Table */}
+      <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
+      <table className="w-full text-sm mt-2 text-center border">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border px-2 py-1">Year</th>
+            <th className="border px-2 py-1">Expenses</th>
+            <th className="border px-2 py-1">Conservative Growth</th>
+            <th className="border px-2 py-1">FIRE Status (Cons)</th>
+            <th className="border px-2 py-1">Aggressive Growth</th>
+            <th className="border px-2 py-1">FIRE Status (Aggr)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(results.cons).map(([yr, consVal]) => {
+            const aggrVal = results.aggr[yr];
+
+            return (
+              <tr key={yr}>
+                <td className="border px-2 py-1">{yr}</td>
+                <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
+                <td className="border px-2 py-1">{fmt(consVal)}</td>
+                <td className="border px-2 py-1 text-sm text-left">
+                  {milestoneCheck(consVal, 'conservative')}
+                </td>
+                <td className="border px-2 py-1">{fmt(aggrVal)}</td>
+                <td className="border px-2 py-1 text-sm text-left">
+                  {milestoneCheck(aggrVal, 'aggressive')}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
