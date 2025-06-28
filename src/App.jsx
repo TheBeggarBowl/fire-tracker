@@ -32,7 +32,7 @@ const parseFormattedNumber = (str) => {
 
 export default function App() {
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
+  const currentMonth = now.getMonth() + 1; // getMonth() is 0-indexed
   const currentYear = now.getFullYear();
 
   const defaultInputs = {
@@ -52,6 +52,7 @@ export default function App() {
   };
 
   const [inputs, setInputs] = useState(() => {
+    // Initialize inputs from localStorage or default values
     return Object.keys(defaultInputs).reduce((a, k) => {
       a[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
       return a;
@@ -61,13 +62,13 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
-  // New state variables to track achieved milestones
+  // States to track achieved milestones for *display logic per path*
   const [conservativeMilestonesAchieved, setConservativeMilestonesAchieved] = useState({
     lean: false,
     coast: false,
     fire: false,
     fat: false,
-    all: false,
+    all: false, // To track if all FIRE types are achieved for "Happy Retirement!"
   });
 
   const [aggressiveMilestonesAchieved, setAggressiveMilestonesAchieved] = useState({
@@ -75,17 +76,20 @@ export default function App() {
     coast: false,
     fire: false,
     fat: false,
-    all: false,
+    all: false, // To track if all FIRE types are achieved for "Happy Retirement!"
   });
 
+  // Effect to save inputs to localStorage and recalculate on input change
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
     calculate();
-    // Reset milestones when inputs change - this is good
+    // Reset milestone achievement flags when inputs change,
+    // so the new projection starts fresh.
     setConservativeMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
     setAggressiveMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
   }, [inputs]);
 
+  // Effect to show disclaimer alert on initial load
   useEffect(() => {
     alert(
       `📢 Disclaimer:
@@ -94,6 +98,7 @@ Good luck on your FIRE journey! 🔥`
     );
   }, []);
 
+  // Handler to update input state
   const update = (k, v) => {
     const numericKeys = ["monthlyExpense", "sip", "currentNetWorth", "inflation", "projectionYears", "desiredConservativeCAGR", "desiredAggressiveCAGR", "currentAge", "desiredFIREAge", "desiredCoastAge"];
     const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
@@ -104,6 +109,7 @@ Good luck on your FIRE journey! 🔥`
     }));
   };
 
+  // Core calculation logic
   const calculate = () => {
     const {
       sip, currentNetWorth, startMonth, startYear,
@@ -112,43 +118,50 @@ Good luck on your FIRE journey! 🔥`
       desiredCoastAge, monthlyExpense, inflation
     } = inputs;
 
+    // Calculate yearly expenses with inflation
     const yearlyExpenses = {};
-    let exp = monthlyExpense * 12;
+    let exp = monthlyExpense * 12; // Annual expenses in the start year
     for (let i = 0; i <= projectionYears; i++) {
       yearlyExpenses[startYear + i] = exp;
-      exp *= 1 + inflation / 100;
+      exp *= 1 + inflation / 100; // Inflate for the next year
     }
 
+    // Calculate FIRE targets
     const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
-    const expAtFIRE = yearlyExpenses[targetYearFIRE];
+    const expAtFIRE = yearlyExpenses[targetYearFIRE]; // Expenses at target FIRE age
+
+    // Targets based on multiples of annual expenses at FIRE age
     const leanTarget = expAtFIRE * 15;
     const fireTarget = expAtFIRE * 25;
     const fatTarget = expAtFIRE * 40;
-    const coastFuture = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
-    const coastTarget = coastFuture / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
+
+    // Coast FIRE target: Calculate future FIRE target and discount it back to Coast FIRE age
+    const futureFireCorpus = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
+    const coastTarget = futureFireCorpus / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
+    // Function to project portfolio growth
     const project = (rate) => {
       let port = currentNetWorth;
       const monthlyRate = rate / 12 / 100;
-      let year = startYear, m = startMonth - 1;
+      let year = startYear, m = startMonth - 1; // monthNames is 0-indexed, startMonth is 1-indexed
       const yearlyTotals = {};
-      yearlyTotals[`${year}`] = port;
+      yearlyTotals[`${year}`] = port; // Initial portfolio at the start of the first year
+
       for (let i = 0; i < projectionYears * 12; i++) {
         port = port * (1 + monthlyRate) + sip;
         m++;
-        if (m >= 12) {
-          m = 0;
+        if (m >= 12) { // End of a year
+          m = 0; // Reset month for next year
           year++;
-        }
-        if (m === 11 || i === projectionYears * 12 - 1) {
-          yearlyTotals[`${year}`] = port;
+          yearlyTotals[`${year}`] = port; // Store year-end balance
         }
       }
       return yearlyTotals;
     };
 
+    // Set calculated results
     setResults({
       yearlyExpenses,
       targets,
@@ -157,63 +170,130 @@ Good luck on your FIRE journey! 🔥`
     });
   };
 
+  // Formatter for currency display
   const fmt = (v) => {
     const cur = inputs.currency;
     const sym = cur === "INR" ? "₹" : "$";
     if (cur === "INR") {
+      // Indian numbering system (Lakhs and Crores)
       if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
       if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
       return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
     } else {
+      // US numbering system (Thousands and Millions)
       if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
       if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
       return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
     }
   };
 
+  // Calculates current FIRE progress
   const calcFIRE = () => {
-    const now = inputs.currentNetWorth;
+    const currentCorpus = inputs.currentNetWorth;
     const yearsToFIRE = inputs.desiredFIREAge - inputs.currentAge;
-    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
+    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets; // Assumes results is not null here
+
+    // Data for the current progress table
     const data = [
       ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
       ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
       ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
       ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
     ];
+
     return data.map(([label, tgt, age]) => {
-      const gap = now - tgt;
-      const need = gap >= 0 ? "Achieved ✅" : `${((Math.pow(tgt / now, 1 / yearsToFIRE) - 1) * 100).toFixed(1)}%`;
+      const gap = currentCorpus - tgt; // Surplus (+) or deficit (-)
+      let need;
+      if (gap >= 0) {
+        need = "Achieved ✅";
+      } else if (currentCorpus <= 0) { // Avoid division by zero or negative currentCorpus
+        need = "N/A"; // Or some other appropriate message
+      }
+      else {
+        // Calculate required CAGR to reach target in yearsToFIRE
+        // Formula: ((Target / Current)^(1/Years) - 1) * 100
+        // Ensure yearsToFIRE is positive to avoid issues
+        const effectiveYears = age - inputs.currentAge; // Years to target age for this specific milestone
+        need = effectiveYears > 0 ? `${((Math.pow(tgt / currentCorpus, 1 / effectiveYears) - 1) * 100).toFixed(1)}%` : "N/A";
+      }
       return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
     });
   };
 
+  // Render nothing until results are calculated
   if (!results) return null;
 
-  // Modified milestoneCheck function - now a pure function returning statuses
-  const getMilestoneStatus = (val, targets) => {
-    const statuses = [];
-    if (val >= targets.leanTarget) {
-      statuses.push("🏋️‍♂️ Lean FIRE");
-    }
-    if (val >= targets.coastTarget) {
-      statuses.push("🦈 Coast FIRE");
-    }
-    if (val >= targets.fireTarget) {
-      statuses.push("🔥 FIRE");
-    }
-    if (val >= targets.fatTarget) {
-      statuses.push("🐋 Fat FIRE");
+  // Function to determine and display FIRE status for each projected year
+  const getMilestoneStatus = (val, targets, pathType) => {
+    let currentMilestones;
+    let setMilestones;
+
+    // Select the correct state and setter based on the path (conservative/aggressive)
+    if (pathType === 'conservative') {
+      currentMilestones = conservativeMilestonesAchieved;
+      setMilestones = setConservativeMilestonesAchaged;
+    } else { // aggressive
+      currentMilestones = aggressiveMilestonesAchieved;
+      setMilestones = setAggressiveMilestonesAchieved;
     }
 
-    if (statuses.length === 4) { // All 4 types achieved
+    // If "Happy Retirement!" (all milestones) has already been reached for this path,
+    // continue to display that for all subsequent years.
+    if (currentMilestones.all) {
       return "🎉 Happy Retirement!";
-    } else if (statuses.length > 0) {
-      return statuses.join(", ");
+    }
+
+    const achievedThisYear = []; // Stores milestones newly achieved in THIS specific year
+    let updatedMilestones = { ...currentMilestones }; // Create a mutable copy of the current state
+
+    // Check for each milestone. If value meets target AND it hasn't been achieved yet,
+    // mark it as achieved for this year and update the persistent flags.
+    if (val >= targets.leanTarget && !updatedMilestones.lean) {
+      achievedThisYear.push("🏋️‍♂️ Lean FIRE");
+      updatedMilestones.lean = true;
+    }
+    if (val >= targets.coastTarget && !updatedMilestones.coast) {
+      achievedThisYear.push("🦈 Coast FIRE");
+      updatedMilestones.coast = true;
+    }
+    if (val >= targets.fireTarget && !updatedMilestones.fire) {
+      achievedThisYear.push("🔥 FIRE");
+      updatedMilestones.fire = true;
+    }
+    if (val >= targets.fatTarget && !updatedMilestones.fat) {
+      achievedThisYear.push("🐋 Fat FIRE");
+      updatedMilestones.fat = true;
+    }
+
+    // After checking all individual milestones, check if all are now achieved.
+    // This is for the "Happy Retirement!" condition.
+    if (updatedMilestones.lean && updatedMilestones.coast && updatedMilestones.fire && updatedMilestones.fat && !updatedMilestones.all) {
+        achievedThisYear.push("🎉 Happy Retirement!"); // Add to current year's achievements
+        updatedMilestones.all = true; // Mark all as achieved persistently
+    }
+
+    // Update the state for the current path if there's any change in achievement flags
+    if (JSON.stringify(currentMilestones) !== JSON.stringify(updatedMilestones)) {
+      setMilestones(updatedMilestones);
+    }
+
+    // Determine the message to display for this year based on what was achieved
+    if (achievedThisYear.length > 0) {
+      // If new milestones were achieved this year, display them
+      return achievedThisYear.join(", ");
     } else {
+      // If no new milestones were achieved this year,
+      // display the highest level of FIRE already achieved,
+      // or "Keep going!" if none have been achieved yet.
+      if (currentMilestones.all) return "🎉 Happy Retirement!"; // Redundant, but good for clarity
+      if (currentMilestones.fat) return "🐋 Fat FIRE Achieved";
+      if (currentMilestones.fire) return "🔥 FIRE Achieved";
+      if (currentMilestones.coast) return "🦈 Coast FIRE Achieved";
+      if (currentMilestones.lean) return "🏋️‍♂️ Lean FIRE Achieved";
       return "🧭 Keep going!";
     }
   };
+
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
@@ -223,7 +303,7 @@ Good luck on your FIRE journey! 🔥`
 
       {showIntro && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm">
-          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones for different scenarios with which you can retire early - 🏋️‍♂️ Lean FIRE – Lean FIRE – Early retirement with frugal lifestyle , 🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement, 🔥 FIRE – Early retirement with comfortable standard of living and 🐋 Fat FIRE – Early retirement with luxurious lifestyle. These are rough projections and not financial advice.
+          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate milestones for different scenarios with which you can retire early - 🏋️‍♂️ Lean FIRE – Early retirement with frugal lifestyle , 🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement, 🔥 FIRE – Early retirement with comfortable standard of living and 🐋 Fat FIRE – Early retirement with luxurious lifestyle. These are rough projections and not financial advice.
           <button
             className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900"
             onClick={() => setShowIntro(false)}
@@ -245,6 +325,7 @@ Good luck on your FIRE journey! 🔥`
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Input fields */}
         {Object.entries(defaultInputs).map(([k]) => (
           <div key={k}>
             <label className="block text-sm font-medium">{labelMap[k]}</label>
@@ -291,6 +372,8 @@ Good luck on your FIRE journey! 🔥`
           Reset to Default
         </button>
       </div>
+
+      {/* FIRE Progress Table (based on current net worth) */}
       <div className="bg-gray-100 p-4 rounded">
         <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
         <table className="w-full text-center text-sm mt-2 border">
@@ -318,9 +401,10 @@ Good luck on your FIRE journey! 🔥`
           </tbody>
         </table>
       </div>
-      {/* Projection Milestone Achievement Table */}
+
+      {/* Projection Milestone Achievement Table (Year milestone is first met) */}
       <div className="bg-gray-100 p-4 rounded">
-        <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on current retirement corpus + projected returns) </h2>
+        <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (Year milestones are first met) </h2>
         <table className="w-full text-center text-sm mt-2 border">
           <thead className="bg-gray-200">
             <tr>
@@ -332,11 +416,16 @@ Good luck on your FIRE journey! 🔥`
           </thead>
           <tbody>
             {["leanTarget", "coastTarget", "fireTarget", "fatTarget"].map((key, i) => {
-              const label = Object.entries(fireIcons).find(([k]) => key.includes(k))?.[1] + " " + key.replace("Target", "").toUpperCase();
-              const tgt = results.targets[key];
+              // Extract icon and label from the key
+              const labelParts = key.replace("Target", "").split(/(?=[A-Z])/); // Splits "leanTarget" into ["lean", "Target"] etc.
+              const fireType = labelParts[0].toLowerCase(); // "lean", "coast", "fire", "fat"
+              const label = fireIcons[fireType] + " " + fireType.toUpperCase();
 
+              const tgt = results.targets[key]; // Get the target value from results
+
+              // Helper to find the first year a target is met in a given projection data
               const findYear = (data) =>
-                Object.entries(data).find(([yr, val]) => val >= tgt)?.[0] ?? "❌";
+                Object.entries(data).find(([, val]) => val >= tgt)?.[0] ?? "❌";
 
               const yearCons = findYear(results.cons);
               const yearAggr = findYear(results.aggr);
@@ -353,7 +442,8 @@ Good luck on your FIRE journey! 🔥`
           </tbody>
         </table>
       </div>
-      {/* Projection Summary Table */}
+
+      {/* Projection Summary Table (Detailed yearly breakdown) */}
       <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
       <table className="w-full text-sm mt-2 text-center border">
         <thead className="bg-gray-200">
@@ -367,8 +457,9 @@ Good luck on your FIRE journey! 🔥`
           </tr>
         </thead>
         <tbody>
+          {/* Map over conservative results (assuming both have the same years) */}
           {Object.entries(results.cons).map(([yr, consVal]) => {
-            const aggrVal = results.aggr[yr];
+            const aggrVal = results.aggr[yr]; // Get aggressive value for the same year
 
             return (
               <tr key={yr}>
@@ -376,11 +467,11 @@ Good luck on your FIRE journey! 🔥`
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
                 <td className="border px-2 py-1">{fmt(consVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left">
-                  {getMilestoneStatus(consVal, results.targets)}
+                  {getMilestoneStatus(consVal, results.targets, 'conservative')}
                 </td>
                 <td className="border px-2 py-1">{fmt(aggrVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left">
-                  {getMilestoneStatus(aggrVal, results.targets)}
+                  {getMilestoneStatus(aggrVal, results.targets, 'aggressive')}
                 </td>
               </tr>
             );
