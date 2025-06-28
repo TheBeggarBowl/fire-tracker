@@ -311,47 +311,28 @@ Good luck on your FIRE journey! 🔥`
   if (!results && !hasValidationErrors) return null;
 
   const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
-    const { lean, coast, fire, fat } = getMilestoneState(val, targets);
-    const pathAchievements = firstAchievementYears[pathType];
+  const { lean, coast, fire, fat } = getMilestoneState(val, targets);
+  const pathAchievements = firstAchievementYears[pathType];
 
-    // Priority 1: Full Retirement Achieved (based on Fat FIRE being reached)
-    // This implies all previous milestones are also 'achieved earlier'
-    if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
-        return "🎉 Happy Retirement!";
-    }
+  // Priority 1: Full Retirement Achieved (fat milestone achieved)
+  if (pathAchievements.fat && currentYearInProjection >= pathAchievements.fat) {
+    return "🎉 Happy Retirement!";
+  }
 
-    // Priority 2: New Milestone Achieved *This Year* (highest to lowest)
-    // Check if the current value meets the fat target. If so, return Fat FIRE.
-    // This order ensures the highest *currently met* milestone is displayed.
-    if (fat) {
-        return "🐋 Fat FIRE Achieved";
-    }
-    if (fire) {
-        return "🔥 FIRE Achieved";
-    }
-    if (coast) {
-        return "🦈 Coast FIRE Achieved";
-    }
-    if (lean) {
-        return "🏋️‍♂️ Lean FIRE Achieved";
-    }
+  // Priority 2: Check if *this year* is the first achievement of any milestone (lowest to highest)
+  if (pathAchievements.lean === currentYearInProjection) return "🏋️‍♂️ Lean FIRE Achieved";
+  if (pathAchievements.coast === currentYearInProjection) return "🦈 Coast FIRE Achieved";
+  if (pathAchievements.fire === currentYearInProjection) return "🔥 FIRE Achieved";
+  if (pathAchievements.fat === currentYearInProjection) return "🐋 Fat FIRE Achieved";
 
-    // Priority 3: Milestone Achieved *In a Previous Year* (highest to lowest)
-    // Only show "earlier" if it was hit previously AND we haven't hit a *new* milestone this year.
-    // Also, ensure the target milestone year is before the current projection year.
-    if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) {
-        return "🔥 FIRE Achieved (earlier)";
-    }
-    if (pathAchievements.coast && currentYearInProjection > pathAchievements.coast) {
-        return "🦈 Coast FIRE Achieved (earlier)";
-    }
-    if (pathAchievements.lean && currentYearInProjection > pathAchievements.lean) {
-        return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
-    }
-    
-    // Priority 4: Default
-    return "🧭 Keep going!";
-  };
+  // Priority 3: Previously achieved milestones
+  if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) return "🐋 Fat FIRE Achieved (earlier)";
+  if (pathAchievements.fire && currentYearInProjection > pathAchievements.fire) return "🔥 FIRE Achieved (earlier)";
+  if (pathAchievements.coast && currentYearInProjection > pathAchievements.coast) return "🦈 Coast FIRE Achieved (earlier)";
+  if (pathAchievements.lean && currentYearInProjection > pathAchievements.lean) return "🏋️‍♂️ Lean FIRE Achieved (earlier)";
+
+  return "🧭 Keep going!";
+};
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans bg-white text-gray-900 dark:bg-gray-800 dark:text-white min-h-screen transition-colors duration-200">
