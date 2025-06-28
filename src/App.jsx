@@ -67,8 +67,8 @@ export default function App() {
   useEffect(() => {
     alert(
 `📢 Disclaimer:
-This tool offers rough projections — not guarantees. Use it at your own discretion. The creator is not responsible for any anomalies.
-If you find it helpful, spread the love and good luck on your FIRE journey! 🔥`
+This tool offers rough projections and not guarantees - Use it at your own discretion. The creator is not responsible for any anomalies.
+Good luck on your FIRE journey! 🔥`
     );
   }, []);
 
@@ -168,7 +168,7 @@ If you find it helpful, spread the love and good luck on your FIRE journey! 🔥
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
-      <h1 className="text-center text-3xl font-bold">🔥 The Beggar Bowl’s FIRE Tracker 🔥</h1>
+      <h1 className="text-center text-3xl font-bold">🔥 The FIRE Tracker 🔥</h1>
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
         <strong>FIRE Milestone Descriptions</strong>
