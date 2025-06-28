@@ -74,7 +74,15 @@ Good luck on your FIRE journey! 🔥`
     );
   }, []);
 
-  const update = (k,v) => setInputs(prev => ({ ...prev, [k]: isNaN(v)? v : Number(v) }));
+  const update = (k, v) => {
+  const numericKeys = ["monthlyExpense", "sip", "currentNetWorth", "inflation", "projectionYears", "desiredConservativeCAGR", "desiredAggressiveCAGR", "currentAge", "desiredFIREAge", "desiredCoastAge"];
+  const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
+
+  setInputs(prev => ({
+    ...prev,
+    [k]: numericKeys.includes(k) ? Number(cleanedValue) : cleanedValue
+  }));
+};
 
   const calculate = () => {
     const {
