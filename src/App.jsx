@@ -96,7 +96,7 @@ export default function App() {
   useEffect(() => {
     alert(
       `📢 Disclaimer:
-This tool offers rough projections and no guaranteed returns - Use it at your own discretion. The creator is not responsible for any anomalies.
+This calculator provides illustrative financial projections based on user input. It does not constitute financial advice. Market returns, inflation, and tax laws are uncertain and may differ significantly from the assumptions used here. Always consult a financial advisor before making retirement decisions.The creator is not responsible for any anomalies.
 Good luck on your FIRE journey! 🔥`
     );
   }, []);
@@ -400,7 +400,7 @@ Good luck on your FIRE journey! 🔥`
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
           <li>🏋️‍♂️ Lean FIRE – Early retirement with frugal lifestyle </li>
-          <li>🦈 Coast FIRE – Save early, let investments grow, work only to cover expenses until retirement.</li>
+          <li>🦈 Coast FIRE – Save enough early so that your portfolio can grow (at conservative returns) to meet FIRE needs without further contributions</li>
           <li>🔥 FIRE – Early retirement with comfortable standard of living</li>
           <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle</li>
         </ul>
