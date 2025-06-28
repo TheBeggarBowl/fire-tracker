@@ -308,8 +308,7 @@ Good luck on your FIRE journey! 🔥`
     </tbody>
   </table>
 </div>
-
-     
+<div>
   <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
   <table className="w-full text-sm mt-2 text-center border">
     <thead className="bg-gray-200">
