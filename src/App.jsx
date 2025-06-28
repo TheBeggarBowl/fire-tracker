@@ -20,7 +20,7 @@ const labelMap = {
 };
 
 const formatNumberWithCommas = (value, currency) => {
-  const locale = currency === "en-IN" ? "en-IN" : "en-US";
+  const locale = currency === "INR" ? "en-IN" : "en-US";
   const number = Number(value.toString().replace(/,/g, ""));
   if (isNaN(number)) return "";
   return number.toLocaleString(locale);
@@ -61,14 +61,13 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
 
-  // New state variables to track achieved milestones for *display purposes*
-  // These will be reset and updated dynamically per projection pass
+  // New state variables to track achieved milestones
   const [conservativeMilestonesAchieved, setConservativeMilestonesAchieved] = useState({
     lean: false,
     coast: false,
     fire: false,
     fat: false,
-    all: false, // To track if all FIRE types are achieved
+    all: false,
   });
 
   const [aggressiveMilestonesAchieved, setAggressiveMilestonesAchieved] = useState({
@@ -76,13 +75,13 @@ export default function App() {
     coast: false,
     fire: false,
     fat: false,
-    all: false, // To track if all FIRE types are achieved
+    all: false,
   });
 
   useEffect(() => {
     Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
     calculate();
-    // Reset milestones when inputs change, before a new calculation run
+    // Reset milestones when inputs change - this is good
     setConservativeMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
     setAggressiveMilestonesAchieved({ lean: false, coast: false, fire: false, fat: false, all: false });
   }, [inputs]);
@@ -126,7 +125,6 @@ Good luck on your FIRE journey! 🔥`
     const fireTarget = expAtFIRE * 25;
     const fatTarget = expAtFIRE * 40;
     const coastFuture = (monthlyExpense * 12) * 25 * Math.pow(1 + inflation / 100, desiredFIREAge - currentAge);
-    // Coast FIRE target is calculated as the present value (at desiredCoastAge) of the FIRE target (at desiredFIREAge)
     const coastTarget = coastFuture / Math.pow(1 + desiredConservativeCAGR / 100, desiredFIREAge - desiredCoastAge);
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
@@ -144,7 +142,7 @@ Good luck on your FIRE journey! 🔥`
           m = 0;
           year++;
         }
-        if (m === 11 || i === projectionYears * 12 - 1) { // Capture year-end balance
+        if (m === 11 || i === projectionYears * 12 - 1) {
           yearlyTotals[`${year}`] = port;
         }
       }
@@ -192,62 +190,30 @@ Good luck on your FIRE journey! 🔥`
 
   if (!results) return null;
 
-  // Modified milestoneCheck function to return the status for the current year
-  // and update the global achievement flags
-  const getMilestoneStatus = (val, targets, pathType) => {
-    let currentMilestones;
-    let setMilestones;
-
-    if (pathType === 'conservative') {
-      currentMilestones = conservativeMilestonesAchieved;
-      setMilestones = setConservativeMilestonesAchieved;
-    } else { // aggressive
-      currentMilestones = aggressiveMilestonesAchieved;
-      setMilestones = setAggressiveMilestonesAchieved;
-    }
-
+  // Modified milestoneCheck function - now a pure function returning statuses
+  const getMilestoneStatus = (val, targets) => {
     const statuses = [];
-    let updatedMilestones = { ...currentMilestones }; // Create a mutable copy
-
-    let statusMessage = "🧭 Keep going!"; // Default message
-
-    // Check for milestones if they haven't been achieved yet for this path
-    if (val >= targets.leanTarget && !updatedMilestones.lean) {
+    if (val >= targets.leanTarget) {
       statuses.push("🏋️‍♂️ Lean FIRE");
-      updatedMilestones.lean = true;
     }
-    if (val >= targets.coastTarget && !updatedMilestones.coast) {
+    if (val >= targets.coastTarget) {
       statuses.push("🦈 Coast FIRE");
-      updatedMilestones.coast = true;
     }
-    if (val >= targets.fireTarget && !updatedMilestones.fire) {
+    if (val >= targets.fireTarget) {
       statuses.push("🔥 FIRE");
-      updatedMilestones.fire = true;
     }
-    if (val >= targets.fatTarget && !updatedMilestones.fat) {
+    if (val >= targets.fatTarget) {
       statuses.push("🐋 Fat FIRE");
-      updatedMilestones.fat = true;
     }
 
-    // If new milestones were achieved this year, update the status message
-    if (statuses.length > 0) {
-      statusMessage = statuses.join(", ");
+    if (statuses.length === 4) { // All 4 types achieved
+      return "🎉 Happy Retirement!";
+    } else if (statuses.length > 0) {
+      return statuses.join(", ");
+    } else {
+      return "🧭 Keep going!";
     }
-
-    // Check if all milestones are achieved for this path
-    if (updatedMilestones.lean && updatedMilestones.coast && updatedMilestones.fire && updatedMilestones.fat && !updatedMilestones.all) {
-      statusMessage = "🎉 Happy Retirement!"; // Override if all achieved this year
-      updatedMilestones.all = true;
-    }
-
-    // Update the state for the current path if there's a change
-    if (JSON.stringify(currentMilestones) !== JSON.stringify(updatedMilestones)) {
-      setMilestones(updatedMilestones);
-    }
-
-    return statusMessage;
   };
-
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans">
@@ -410,11 +376,11 @@ Good luck on your FIRE journey! 🔥`
                 <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
                 <td className="border px-2 py-1">{fmt(consVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left">
-                  {getMilestoneStatus(consVal, results.targets, 'conservative')}
+                  {getMilestoneStatus(consVal, results.targets)}
                 </td>
                 <td className="border px-2 py-1">{fmt(aggrVal)}</td>
                 <td className="border px-2 py-1 text-sm text-left">
-                  {getMilestoneStatus(aggrVal, results.targets, 'aggressive')}
+                  {getMilestoneStatus(aggrVal, results.targets)}
                 </td>
               </tr>
             );
