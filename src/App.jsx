@@ -332,9 +332,17 @@ Good luck on your FIRE journey! 🔥`
       else if (aggrVal >= value) statusList.push(`${label} (Aggr)`);
     });
 
-    return statusList.length > 0
-      ? statusList.map((s, i) => <div key={i}>{s}</div>)
-      : <span className="text-gray-500">🧭 Keep going!</span>;
+    // Check if both Conservative and Aggressive have hit FIRE level
+const consReachedFire = consVal >= results.targets.fireTarget;
+const aggrReachedFire = aggrVal >= results.targets.fireTarget;
+
+if (consReachedFire && aggrReachedFire) {
+  return <span className="text-green-700 font-semibold">🎉 Happy Retirement!</span>;
+}
+
+return statusList.length > 0
+  ? statusList.map((s, i) => <div key={i}>{s}</div>)
+  : <span className="text-gray-500">🧭 Keep going!</span>;
   })()}
 </td>
 
