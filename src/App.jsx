@@ -370,7 +370,7 @@ Good luck on your FIRE journey! 🔥`
 
       {showIntro && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
-          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence Retire Early</em>. This calculator helps you estimate milestones for different milestones with which you can estimate to retire early - Kindly note these are rough projections and not financial advice. If you liked this, you can buy me a coffee. Information at the bottom of the page.
+          <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence Retire Early</em>. This calculator helps you estimate milestones for different milestones with which you can estimate to retire early - Kindly note these are rough projections and not financial advice.
           <button
             className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
             onClick={() => setShowIntro(false)}
@@ -378,7 +378,19 @@ Good luck on your FIRE journey! 🔥`
           >
             ×
           </button>
-        </div>
+          </div>
+          <div className="text-center mt-3 text-sm text-gray-700 dark:text-gray-300">
+      If this tool saved you time or helped your FIRE planning, consider <br />
+      <a
+        href="https://coff.ee/thebeggarbowl"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center text-yellow-800 dark:text-yellow-300 hover:underline mt-1"
+      >
+        ☕ buying me a coffee
+      </a>
+      🙏
+    </div>
       )}
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200">
@@ -390,7 +402,9 @@ Good luck on your FIRE journey! 🔥`
           <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle</li>
         </ul>
       </div>
-
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+  ✏️ You can update the inputs below to reflect your financial situation.
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(defaultInputs).map(([k]) => (
           <div key={k}>
