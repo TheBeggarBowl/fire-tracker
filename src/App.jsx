@@ -309,53 +309,52 @@ Good luck on your FIRE journey! 🔥`
             <tr>
               <th className="border px-2 py-1">Year</th>
               <th className="border px-2 py-1">Expenses</th>
-              <th className="border px-2 py-1">Conservative</th>
-              <th className="border px-2 py-1">Aggressive</th>
-              <th className="border px-2 py-1">Status</th>
-            </tr>
+              <th className="border px-2 py-1">Conservative Growth </th>
+              <th className="border px-2 py-1">FIRE Status (Cons growth)</th>
+              <th className="border px-2 py-1">Aggressive Growth </th>
+              <th className="border px-2 py-1">FIRE Status (Agrressive Growth)</th>
+  </tr>
           </thead>
           <tbody>
-            {Object.entries(results.cons).map(([yr,val])=>
-              <tr key={yr}>
-                <td className="border px-2 py-1">{yr}</td>
-                <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr]||0)}</td>
-                <td className="border px-2 py-1">{fmt(val)}</td>
-                <td className="border px-2 py-1">{fmt(results.aggr[yr])}</td>
-               <td className="border px-2 py-1 text-sm text-left leading-tight">
-  {(() => {
-    const statusList = [];
-    const year = parseInt(yr);
-    const consVal = val;
+            {Object.entries(results.cons).map(([yr, consVal]) => {
     const aggrVal = results.aggr[yr];
+    const year = parseInt(yr);
 
-    const milestones = [
-      { label: "🐋 Fat", value: results.targets.fatTarget },
-      { label: "🔥 FIRE", value: results.targets.fireTarget },
-      { label: "🦈 Coast", value: results.targets.coastTarget },
-      { label: "🏋️‍♂️ Lean", value: results.targets.leanTarget },
-    ];
+    const milestoneCheck = (val) => {
+      const statuses = [];
+      if (val >= results.targets.fatTarget) statuses.push("🐋 Fat FIRE");
+      else if (val >= results.targets.fireTarget) statuses.push("🔥 FIRE");
+      else if (val >= results.targets.coastTarget) statuses.push("🦈 Coast FIRE");
+      else if (val >= results.targets.leanTarget) statuses.push("🏋️‍♂️ Lean FIRE");
+      return statuses.length > 0 ? statuses.join(", ") : "🧭 Keep going!";
+    };
 
-    milestones.forEach(({ label, value }) => {
-      if (consVal >= value) statusList.push(`${label} (Cons)`);
-      else if (aggrVal >= value) statusList.push(`${label} (Aggr)`);
-    });
+    const consDone = consVal >= results.targets.fatTarget && consVal >= results.targets.fireTarget;
+    const aggrDone = aggrVal >= results.targets.fatTarget && aggrVal >= results.targets.fireTarget;
 
-    // Check if both Conservative and Aggressive have hit FIRE level
-const consReachedFire = consVal >= results.targets.fireTarget;
-const aggrReachedFire = aggrVal >= results.targets.fireTarget;
-
-if (consReachedFire && aggrReachedFire) {
-  return <span className="text-green-700 font-semibold">🎉 Happy Retirement!</span>;
-}
-
-return statusList.length > 0
-  ? statusList.map((s, i) => <div key={i}>{s}</div>)
-  : <span className="text-gray-500">🧭 Keep going!</span>;
-  })()}
-</td>
-
-              </tr>
-            )}
+    return (
+      <tr key={yr}>
+        <td className="border px-2 py-1">{yr}</td>
+        <td className="border px-2 py-1">{fmt(results.yearlyExpenses[yr] || 0)}</td>
+        <td className="border px-2 py-1">{fmt(consVal)}</td>
+        <td className="border px-2 py-1 text-sm text-left">
+          {consDone ? (
+            <span className="text-green-700 font-semibold">🎉 Happy Retirement!</span>
+          ) : (
+            milestoneCheck(consVal)
+          )}
+        </td>
+        <td className="border px-2 py-1">{fmt(aggrVal)}</td>
+        <td className="border px-2 py-1 text-sm text-left">
+          {aggrDone ? (
+            <span className="text-green-700 font-semibold">🎉 Happy Retirement!</span>
+          ) : (
+            milestoneCheck(aggrVal)
+          )}
+        </td>
+      </tr>
+    );
+  })}
           </tbody>
         </table>
       </div>
