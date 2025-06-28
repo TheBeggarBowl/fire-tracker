@@ -54,7 +54,7 @@ export default function App() {
     inflation: 6,
     startMonth: currentMonth,
     startYear: currentYear,
-    currentNetWorth: 5000000,
+    currentNetWorth: 15000000,
     sip: 100000,
     projectionYears: 20,
     desiredConservativeCAGR: 12,
@@ -310,19 +310,36 @@ Good luck on your FIRE journey! 🔥`
 
   if (!results && !hasValidationErrors) return null;
 
-  const getMilestoneStatus = (val, targets, pathType, currentYear, firstAchievementYears) => {
-  const { lean, coast, fire, fat } = getMilestoneState(val, targets);
+  const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
   const pathAchievements = firstAchievementYears[pathType];
+  const fireOrder = ['lean', 'coast', 'fire', 'fat'];
+  const fireLabels = {
+    lean: "🏋️‍♂️ Lean FIRE",
+    coast: "🦈 Coast FIRE",
+    fire: "🔥 FIRE",
+    fat: "🐋 Fat FIRE"
+  };
 
-  if (pathAchievements.fat && currentYear >= pathAchievements.fat) {
+  // 🎉 Happy Retirement — ONLY after Fat FIRE has already been achieved
+  if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
     return "🎉 Happy Retirement!";
   }
 
-  if (!lean) return "🏋️‍♂️ Targeting Lean FIRE";
-  if (!coast) return "🦈 Targeting Coast FIRE";
-  if (!fire) return "🔥 Targeting FIRE";
-  if (!fat) return "🐋 Targeting Fat FIRE";
+  // ✅ In the exact year a milestone is achieved
+  for (let type of fireOrder) {
+    if (pathAchievements[type] === currentYearInProjection) {
+      return `${fireLabels[type]} Achieved`;
+    }
+  }
 
+  // 🎯 Still on the way — what's the next milestone not yet achieved?
+  for (let type of fireOrder) {
+    if (!pathAchievements[type] || currentYearInProjection < pathAchievements[type]) {
+      return `🎯 Targeting ${fireLabels[type]}`;
+    }
+  }
+
+  // Fallback (this shouldn't hit unless something's wrong)
   return "🧭 Keep going!";
 };
 
