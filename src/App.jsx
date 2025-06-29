@@ -49,12 +49,12 @@ export default function App() {
     currency: "INR",
     currentAge: 40,
     desiredFIREAge: 50,
-    desiredCoastAge: 45,
+    desiredCoastAge: 47,
     monthlyExpense: 100000,
     inflation: 5,
     startMonth: currentMonth,
     startYear: currentYear,
-    currentNetWorth: 15000000,
+    currentNetWorth: 10000000,
     sip: 100000,
     projectionYears: 20,
     desiredConservativeCAGR: 10,
@@ -148,7 +148,9 @@ Good luck on your FIRE journey! 🔥`
     if (inputs.desiredConservativeCAGR < 0) messages.desiredConservativeCAGR = "CAGR cannot be negative.";
     if (inputs.desiredAggressiveCAGR < 0) messages.desiredAggressiveCAGR = "CAGR cannot be negative.";
     if (inputs.retirementTaxRate < 0 || inputs.retirementTaxRate >= 100) messages.retirementTaxRate = "Tax rate must be between 0% and 99.9%.";
-    
+    if (inputs.startYear < currentYear) {
+    messages.startYear = "Start year must be current or future.";
+  }
     return messages;
   }, [inputs]);
 
