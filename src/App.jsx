@@ -552,39 +552,36 @@ setDrawdownResults(drawdowns);
           </div>
         ))}
 	</div>
-       <div className="col-span-full text-right mt-4 sm:mt-0">
+<div className="col-span-full mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
+    <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
+      🧾 Key Assumptions Used in Calculations and Projections
+    </summary>
+    <ul className="list-disc list-inside mt-2 space-y-1">
+      <li><strong>FIRE Corpus Targets</strong>: Lean = 15×, FIRE = 25×, Fat = 40× your expected annual expenses at FIRE age. (That’s 15–40 times your yearly spending — before tax — to sustain retirement.)</li>
+      <li><strong>Inflation</strong>: Expenses increase at {inputs.inflation}% annually.</li>
+      <li><strong>Growth</strong>: Conservative = {inputs.desiredConservativeCAGR}%, Aggressive = {inputs.desiredAggressiveCAGR}% annually.</li>
+      <li><strong>Monthly Investments</strong>: Contributions stop after reaching your FIRE age.</li>
+      <li><strong>After FIRE</strong>: Withdrawals are taxed annually at {inputs.retirementTaxRate}%. Corpus is depleted when funds run out or after 60 years — whichever comes first.</li>
+    </ul>
+  </details>
+
   <button
     onClick={() => {
       setInputs({ ...defaultInputs });
-      setRawInputs(
-        Object.keys(defaultInputs).reduce((a, k) => {
-          a[k] = defaultInputs[k].toString();
-          return a;
-        }, {})
-      );
+      setRawInputs(Object.keys(defaultInputs).reduce((a, k) => {
+        a[k] = defaultInputs[k].toString();
+        return a;
+      }, {}));
       Object.entries(defaultInputs).forEach(([k, v]) =>
         localStorage.setItem(k, JSON.stringify(v))
       );
     }}
-    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
+    className="self-start bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
   >
     Reset to Default
   </button>
-  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 mt-6 border dark:border-gray-700">
-  <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
-    🧾 Key Assumptions Used in Projections
-  </summary>
-  <ul className="list-disc list-inside mt-2 space-y-1">
-    <li><strong>FIRE Corpus Targets</strong>: Lean = 15×, FIRE = 25×, Fat = 40× annual expenses (pre-tax).</li>
-    <li><strong>Inflation</strong>: Expenses grow at {inputs.inflation}% annually.</li>
-    <li><strong>Growth</strong>: Conservative = {inputs.desiredConservativeCAGR}%, Aggressive = {inputs.desiredAggressiveCAGR}%.</li>
-    <li><strong>SIP Contributions</strong> stop after FIRE age.</li>
-    <li><strong>Drawdown</strong>: Withdrawals taxed annually at {inputs.retirementTaxRate}%, ends when corpus hits 0 or 60 years.</li>
-  </ul>
-</details>
-
 </div>
-
       
       {hasValidationErrors && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded text-sm dark:bg-red-900 dark:border-red-700 dark:text-red-200">
@@ -664,7 +661,33 @@ setDrawdownResults(drawdowns);
               </table>
             </div>
           </div>
-
+{drawdownResults && (
+  <div className="mt-8">
+    <h2 className="font-semibold text-lg mb-4">💡 How Long Will Your Money Last After FIRE? </h2>
+    <table className="min-w-full bg-white dark:bg-gray-800 border rounded overflow-hidden text-sm">
+      <thead className="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th className="px-4 py-2 text-left">FIRE Type</th>
+          <th className="px-4 py-2 text-left">Conservative (Age)</th>
+          <th className="px-4 py-2 text-left">Aggressive (Age)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {["lean", "fire", "fat"].map(type => (
+          <tr key={type} className="border-t dark:border-gray-600">
+            <td className="px-4 py-2 capitalize">{type} FIRE</td>
+            <td className="px-4 py-2">
+              {drawdownResults.conservative[type].yearsLasted} yrs, until age {drawdownResults.conservative[type].endAge}
+            </td>
+            <td className="px-4 py-2">
+              {drawdownResults.aggressive[type].yearsLasted} yrs, until age {drawdownResults.aggressive[type].endAge}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
           <h2 className="font-semibold text-lg">📊 Projection Summary</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm mt-2 text-center border border-gray-300 dark:border-gray-600 min-w-[700px]">
@@ -704,34 +727,7 @@ setDrawdownResults(drawdowns);
               </tbody>
             </table>
           </div>
-		  {drawdownResults && (
-  <div className="mt-8">
-    <h2 className="font-semibold text-lg mb-4">💸 Post-FIRE Corpus Longevity</h2>
-    <table className="min-w-full bg-white dark:bg-gray-800 border rounded overflow-hidden text-sm">
-      <thead className="bg-gray-100 dark:bg-gray-700">
-        <tr>
-          <th className="px-4 py-2 text-left">FIRE Type</th>
-          <th className="px-4 py-2 text-left">Conservative (Age)</th>
-          <th className="px-4 py-2 text-left">Aggressive (Age)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {["lean", "fire", "fat"].map(type => (
-          <tr key={type} className="border-t dark:border-gray-600">
-            <td className="px-4 py-2 capitalize">{type} FIRE</td>
-            <td className="px-4 py-2">
-              {drawdownResults.conservative[type].yearsLasted} yrs, until age {drawdownResults.conservative[type].endAge}
-            </td>
-            <td className="px-4 py-2">
-              {drawdownResults.aggressive[type].yearsLasted} yrs, until age {drawdownResults.aggressive[type].endAge}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
-
+		  
         </>
       )}
     <div className="text-center mt-8 text-sm text-gray-700 dark:text-gray-300">
