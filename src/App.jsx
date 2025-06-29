@@ -546,7 +546,7 @@ setDrawdownResults(drawdowns);
           <li>🦈 Coast FIRE – Save enough early so that your portfolio can grow (at conservative returns) to meet FIRE needs without further contributions | You still work, but investing is on autopilot — like cruising downhill on a bicycle</li>
           <li>🔥 FIRE – Early retirement with comfortable standard of living | You cover all expenses with passive income and don't need to work unless it's for joy, clout, or boredom.</li>
           <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle |  You’ve got more than enough to upgrade to business class never check prices at Supermarkets </li>
-	  <li>☕ Barista FIRE – When you've saved just enough to tell your boss "I'm good" and take up part-time work at a chill café | mostly  free wifi.</li>
+	  <li>☕ Barista FIRE – When you've saved just enough to tell your boss "I'm good" and take up part-time work at a chill café | mostly for free wifi.</li>
         </ul>
       </div>
 	  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
