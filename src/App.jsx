@@ -163,25 +163,64 @@ Good luck on your FIRE journey! 🔥`
 };
 
   const validationMessages = useMemo(() => {
-    const messages = {};
-    if (inputs.currentAge < 0) messages.currentAge = "Age cannot be negative.";
-    if (inputs.desiredFIREAge <= inputs.currentAge) messages.desiredFIREAge = "FIRE Age must be greater than Current Age.";
-    if (inputs.desiredCoastAge <= inputs.currentAge || inputs.desiredCoastAge >= inputs.desiredFIREAge) {
-      messages.desiredCoastAge = "Coast Age must be between Current Age and FIRE Age.";
-    }
-    if (inputs.monthlyExpense <= 0) messages.monthlyExpense = "Monthly expenses must be positive.";
-    if (inputs.inflation < 0) messages.inflation = "Inflation cannot be negative.";
-    if (inputs.currentNetWorth < 0) messages.currentNetWorth = "Current corpus cannot be negative.";
-    if (inputs.sip < 0) messages.sip = "Monthly SIP cannot be negative.";
-    if (inputs.projectionYears <= 0) messages.projectionYears = "Projection years must be positive.";
-    if (inputs.desiredConservativeCAGR < 0) messages.desiredConservativeCAGR = "CAGR cannot be negative.";
-    if (inputs.desiredAggressiveCAGR < 0) messages.desiredAggressiveCAGR = "CAGR cannot be negative.";
-    if (inputs.retirementTaxRate < 0 || inputs.retirementTaxRate >= 100) messages.retirementTaxRate = "Tax rate must be between 0% and 99.9%.";
-    if (inputs.startYear < currentYear) {
-    messages.startYear = "Start year must be current or future.";
+  const messages = {};
+
+  // Basic age validations
+  if (inputs.currentAge < 0) messages.currentAge = "Age cannot be negative.";
+  if (inputs.currentAge > 100) messages.currentAge = "Please enter a realistic current age (100 or less).";
+
+  if (inputs.desiredFIREAge <= inputs.currentAge)
+    messages.desiredFIREAge = "FIRE Age must be greater than Current Age.";
+
+  if (
+    inputs.desiredCoastAge <= inputs.currentAge ||
+    inputs.desiredCoastAge >= inputs.desiredFIREAge
+  ) {
+    messages.desiredCoastAge = "Coast Age must be between Current Age and FIRE Age.";
   }
-    return messages;
-  }, [inputs]);
+
+  // NEW: Projection years upper bound check
+  const projectedEndAge = inputs.currentAge + inputs.projectionYears;
+  const maxAllowedAge = inputs.desiredFIREAge + 80;
+  if (projectedEndAge > maxAllowedAge) {
+    messages.projectionYears = `Projection too long — exceeds age ${maxAllowedAge}. Limit to ${
+      maxAllowedAge - inputs.currentAge
+    } years.`;
+  }
+
+  // Existing validations
+  if (inputs.monthlyExpense <= 0)
+    messages.monthlyExpense = "Monthly expenses must be positive.";
+
+  if (inputs.inflation < 0) messages.inflation = "Inflation cannot be negative.";
+
+  if (inputs.currentNetWorth < 0)
+    messages.currentNetWorth = "Current corpus cannot be negative.";
+
+  if (inputs.sip < 0)
+    messages.sip = "Monthly SIP cannot be negative.";
+
+  if (inputs.sip > inputs.currentNetWorth / 2)
+    messages.sip = "SIP is unusually high relative to your current net worth.";
+
+  if (inputs.projectionYears <= 0)
+    messages.projectionYears = "Projection years must be positive.";
+
+  if (inputs.desiredConservativeCAGR < 0)
+    messages.desiredConservativeCAGR = "CAGR cannot be negative.";
+
+  if (inputs.desiredAggressiveCAGR < 0)
+    messages.desiredAggressiveCAGR = "CAGR cannot be negative.";
+
+  if (inputs.retirementTaxRate < 0 || inputs.retirementTaxRate >= 100)
+    messages.retirementTaxRate = "Tax rate must be between 0% and 99.9%.";
+
+  if (inputs.startYear < currentYear) {
+    messages.startYear = "Start year must be this year or later.";
+  }
+
+  return messages;
+}, [inputs]);
 
   const hasValidationErrors = Object.keys(validationMessages).length > 0;
 
