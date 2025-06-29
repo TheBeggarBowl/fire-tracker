@@ -9,7 +9,7 @@ A simple, intuitive calculator to help estimate your path to **FIRE (Financial I
 ## 🚀 Features
 
 - 📈 Estimate years to FIRE based on income, expenses & savings
-- 🧮 Supports different FIRE types (Lean, Barista, Fat)
+- 🧮 Supports different FIRE types (Lean, Coast, Fat)
 - 🎯 Simple, clean interface with dark mode support
 - ⚡ Instant updates as you type (no login, no data stored)
 
