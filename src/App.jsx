@@ -476,7 +476,7 @@ setDrawdownResults(drawdowns);
   // 🎯 If past FAT FIRE year
   //if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
     //return "🎉 Happy Retirement!";
-  }
+  //}
 
   // ✅ Show all milestones achieved *in this year*
   const achievedThisYear = fireOrder
