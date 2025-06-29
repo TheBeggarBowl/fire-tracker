@@ -111,6 +111,7 @@ Good luck on your FIRE journey! 🔥`
   }, []);
 
   const update = (k, v) => {
+  setIsLoading(true); // 🔄 Show loading *immediately* on any input change
   setRawInputs(prev => ({ ...prev, [k]: v }));
 
   const numericKeys = [
