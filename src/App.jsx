@@ -31,6 +31,7 @@ const parseFormattedNumber = (str) => {
   return Number(str.toString().replace(/,/g, ""));
 };
 
+// Pure function to determine milestone state for a given value and targets
 const getMilestoneState = (val, targets) => {
   const lean = val >= targets.leanTarget;
   const coast = val >= targets.coastTarget;
@@ -66,29 +67,418 @@ function simulateDrawdown({
   return { yearsLasted, endAge: age };
 }
 
+
 export default function App() {
-  // ... rest of your code untouched
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // getMonth() is 0-indexed
+  const currentYear = now.getFullYear();
 
-  const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
-    const pathAchievements = firstAchievementYears[pathType];
-    const fireOrder = ['lean', 'coast', 'fire', 'fat'];
-    const fireLabels = {
-      lean: "🏋️‍♂️ Lean FIRE",
-      coast: "🦈 Coast FIRE",
-      fire: "🔥 FIRE",
-      fat: "🐋 Fat FIRE"
-    };
+  const defaultInputs = {
+    currency: "INR",
+    currentAge: 40,
+    desiredFIREAge: 50,
+    desiredCoastAge: 47,
+    monthlyExpense: 100000,
+    inflation: 5,
+    startMonth: currentMonth,
+    startYear: currentYear,
+    currentNetWorth: 10000000,
+    sip: 100000,
+    projectionYears: 20,
+    desiredConservativeCAGR: 10,
+    desiredAggressiveCAGR: 18,
+    retirementTaxRate: 30,
+  };
 
-    if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
-      return "🎉 Happy Retirement!";
+  const [inputs, setInputs] = useState(() => {
+    return Object.keys(defaultInputs).reduce((a, k) => {
+      a[k] = JSON.parse(localStorage.getItem(k)) ?? defaultInputs[k];
+      return a;
+    }, {});
+  });
+  const [rawInputs, setRawInputs] = useState(() => {
+  return Object.keys(defaultInputs).reduce((a, k) => {
+    const stored = localStorage.getItem(k);
+    a[k] = stored !== null ? JSON.parse(stored).toString() : defaultInputs[k].toString();
+    return a;
+  }, {});
+});
+
+
+  const [results, setResults] = useState(null);
+  const [drawdownResults, setDrawdownResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode !== null) {
+      return JSON.parse(savedMode);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    Object.entries(inputs).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
+  }, [inputs]);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
+
+  useEffect(() => {
+    alert(
+      `📢 Disclaimer:
+This calculator provides illustrative financial projections based on user input. It does not constitute financial advice. Market returns, inflation, and tax laws are uncertain and may differ significantly from the assumptions used here. Always consult a financial advisor before making retirement decisions.The creator is not responsible for any anomalies.
+Good luck on your FIRE journey! 🔥`
+    );
+  }, []);
+
+  const update = (k, v) => {
+  setIsLoading(true); // 🔄 Show loading *immediately* on any input change
+  setRawInputs(prev => ({ ...prev, [k]: v }));
+
+  const numericKeys = [
+    "monthlyExpense", "sip", "currentNetWorth", "inflation",
+    "projectionYears", "desiredConservativeCAGR",
+    "desiredAggressiveCAGR", "currentAge", "desiredFIREAge",
+    "desiredCoastAge", "retirementTaxRate"
+  ];
+
+  const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
+
+  if (numericKeys.includes(k)) {
+    const num = Number(cleanedValue);
+    if (!isNaN(num)) {
+      setInputs(prev => ({ ...prev, [k]: num }));
+    }
+  } else {
+    setInputs(prev => ({ ...prev, [k]: cleanedValue }));
+  }
+};
+
+  const validationMessages = useMemo(() => {
+  const messages = {};
+
+  // Basic age validations
+  if (inputs.currentAge < 0) messages.currentAge = "Age cannot be negative.";
+  if (inputs.currentAge > 100) messages.currentAge = "Please enter a realistic current age (100 or less).";
+
+  if (inputs.desiredFIREAge <= inputs.currentAge)
+    messages.desiredFIREAge = "FIRE Age must be greater than Current Age.";
+
+  if (
+    inputs.desiredCoastAge <= inputs.currentAge ||
+    inputs.desiredCoastAge >= inputs.desiredFIREAge
+  ) {
+    messages.desiredCoastAge = "Coast Age must be between Current Age and FIRE Age.";
+  }
+
+  // NEW: Projection years upper bound check
+  const projectedEndAge = inputs.currentAge + inputs.projectionYears;
+  const maxAllowedAge = inputs.desiredFIREAge + 80;
+  if (projectedEndAge > maxAllowedAge) {
+    messages.projectionYears = `Projection too long — exceeds age ${maxAllowedAge}. Limit to ${
+      maxAllowedAge - inputs.currentAge
+    } years.`;
+  }
+
+  // Existing validations
+  if (inputs.monthlyExpense <= 0)
+    messages.monthlyExpense = "Monthly expenses must be positive.";
+
+  if (inputs.inflation < 0) messages.inflation = "Inflation cannot be negative.";
+
+  if (inputs.currentNetWorth < 0)
+    messages.currentNetWorth = "Current corpus cannot be negative.";
+
+  if (inputs.sip < 0)
+    messages.sip = "Monthly SIP cannot be negative.";
+
+  if (inputs.projectionYears <= 0)
+    messages.projectionYears = "Projection years must be positive.";
+
+  if (inputs.desiredConservativeCAGR < 0)
+    messages.desiredConservativeCAGR = "CAGR cannot be negative.";
+
+  if (inputs.desiredAggressiveCAGR < 0)
+    messages.desiredAggressiveCAGR = "CAGR cannot be negative.";
+
+  if (inputs.retirementTaxRate < 0 || inputs.retirementTaxRate >= 100)
+    messages.retirementTaxRate = "Tax rate must be between 0% and 99.9%.";
+
+  if (inputs.startYear < currentYear) {
+    messages.startYear = "Start year must be this year or later.";
+  }
+
+  return messages;
+}, [inputs]);
+
+  const hasValidationErrors = Object.keys(validationMessages).length > 0;
+
+useEffect(() => {
+  if (hasValidationErrors) {
+    setResults(null);
+    return;
+  }
+
+  setIsLoading(true); // Start loading
+
+  setTimeout(() => {
+    const {
+      sip, currentNetWorth, startMonth, startYear,
+      projectionYears, desiredConservativeCAGR,
+      desiredAggressiveCAGR, currentAge, desiredFIREAge,
+      desiredCoastAge, monthlyExpense, inflation,
+      retirementTaxRate
+    } = inputs;
+
+    const yearlyExpenses = {};
+    let exp = monthlyExpense * 12;
+    for (let i = 0; i <= projectionYears; i++) {
+      yearlyExpenses[startYear + i] = exp;
+      exp *= 1 + inflation / 100;
     }
 
-    const achievedThisYear = fireOrder
-      .filter(type => pathAchievements[type] === currentYearInProjection)
-      .map(type => `${fireLabels[type]} Achieved`);
+    const fireYear = startYear + (desiredFIREAge - currentAge);
+	const expAtFIRE = yearlyExpenses[fireYear];
 
-    return achievedThisYear.length > 0 ? achievedThisYear.join(", ") : "";
+	const leanTarget = expAtFIRE * 15;
+	const fireTarget = expAtFIRE * 25;
+	const fatTarget = expAtFIRE * 40;
+
+
+
+    const yearsBetweenCoastAndFire = desiredFIREAge - desiredCoastAge;
+    const coastTarget = (yearsBetweenCoastAndFire > 0)
+      ? fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire)
+      : fireTarget;
+
+    const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
+
+    const project = (rate, currentAge, desiredFIREAge) => {
+      let port = currentNetWorth;
+      const monthlyRate = rate / 12 / 100;
+      let currentProjectionYear = startYear;
+      let currentMonthInProjection = startMonth - 1;
+      const yearlyTotals = {};
+
+      for (let m = currentMonthInProjection; m < 12; m++) {
+        const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12);
+        const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0;
+        port = port * (1 + monthlyRate) + sipForThisMonth;
+      }
+      yearlyTotals[`${currentProjectionYear}`] = port;
+
+      for (let i = 1; i < projectionYears; i++) {
+        currentProjectionYear++;
+        const projectedStartOfYearAge = currentAge + (currentProjectionYear - startYear);
+        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0;
+
+        for (let m = 0; m < 12; m++) {
+          port = port * (1 + monthlyRate) + sipForThisYear;
+        }
+        yearlyTotals[`${currentProjectionYear}`] = port;
+      }
+      return yearlyTotals;
+    };
+
+    const consProjections = project(desiredConservativeCAGR, currentAge, desiredFIREAge);
+    const aggrProjections = project(desiredAggressiveCAGR, currentAge, desiredFIREAge);
+
+    const findFirstAchievementYear = (projections, milestoneType, targets) => {
+      const targetValue = targets[milestoneType];
+      for (const yearStr in projections) {
+        if (projections[yearStr] >= targetValue) {
+          return parseInt(yearStr);
+        }
+      }
+      return null;
+    };
+
+    const firstAchievementYears = {
+      conservative: {
+        lean: findFirstAchievementYear(consProjections, 'leanTarget', targets),
+        coast: findFirstAchievementYear(consProjections, 'coastTarget', targets),
+        fire: findFirstAchievementYear(consProjections, 'fireTarget', targets),
+        fat: findFirstAchievementYear(consProjections, 'fatTarget', targets),
+      },
+      aggressive: {
+        lean: findFirstAchievementYear(aggrProjections, 'leanTarget', targets),
+        coast: findFirstAchievementYear(aggrProjections, 'coastTarget', targets),
+        fire: findFirstAchievementYear(aggrProjections, 'fireTarget', targets),
+        fat: findFirstAchievementYear(aggrProjections, 'fatTarget', targets),
+      }
+    };
+
+    setResults({
+      yearlyExpenses,
+      targets,
+      cons: consProjections,
+      aggr: aggrProjections,
+      firstAchievementYears
+    });
+const drawdowns = {
+  conservative: {
+    lean: simulateDrawdown({
+      startingCorpus: leanTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredConservativeCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fire: simulateDrawdown({
+      startingCorpus: fireTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredConservativeCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fat: simulateDrawdown({
+      startingCorpus: fatTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredConservativeCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    })
+  },
+  aggressive: {
+    lean: simulateDrawdown({
+      startingCorpus: leanTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredAggressiveCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fire: simulateDrawdown({
+      startingCorpus: fireTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredAggressiveCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fat: simulateDrawdown({
+      startingCorpus: fatTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredAggressiveCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    })
+  }
+};
+
+setDrawdownResults(drawdowns);
+
+    setIsLoading(false); // Stop loading
+  }, 0);
+}, [
+  inputs.sip, inputs.currentNetWorth, inputs.startMonth, inputs.startYear,
+  inputs.projectionYears, inputs.desiredConservativeCAGR,
+  inputs.desiredAggressiveCAGR, inputs.currentAge, inputs.desiredFIREAge,
+  inputs.desiredCoastAge, inputs.monthlyExpense, inputs.inflation,
+  inputs.retirementTaxRate, hasValidationErrors
+]);
+
+  const fmt = (v) => {
+    const cur = inputs.currency;
+    const sym = cur === "INR" ? "₹" : "$";
+    if (v === Infinity || isNaN(v)) return "N/A";
+
+    if (cur === "INR") {
+      if (v >= 1e7) return `${sym}${(v / 1e7).toFixed(2)} Cr`;
+      if (v >= 1e5) return `${sym}${(v / 1e5).toFixed(2)} L`;
+      return `${sym}${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+    } else {
+      if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
+      if (v >= 1e3) return `${sym}${(v / 1e3).toFixed(2)}K`;
+      return `${sym}${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+    }
   };
+
+  const calcFIRE = () => {
+    if (!results || !results.targets) return [];
+
+    const currentCorpus = inputs.currentNetWorth;
+    const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
+
+    const data = [
+      ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
+      ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
+      ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
+      ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
+    ];
+
+    return data.map(([label, tgt, age]) => {
+      const gap = currentCorpus - tgt;
+      let need;
+
+      const effectiveYears = age - inputs.currentAge;
+
+      if (gap >= 0) {
+        need = "Achieved ✅";
+      } else if (effectiveYears <= 0 || currentCorpus <= 0 || tgt <= 0) {
+        need = "N/A";
+      } else {
+        const base = tgt / currentCorpus;
+        if (base < 0) {
+          need = "N/A (Corpus Sign Mismatch)";
+        } else if (base === 0) {
+          need = "Achieved ✅ (Target is 0)";
+        }
+        else {
+          need = `${((Math.pow(base, 1 / effectiveYears) - 1) * 100).toFixed(1)}%`;
+        }
+      }
+      return { label, tgt, age, year: inputs.startYear + (age - inputs.currentAge), gap, need };
+    });
+  };
+
+  if (!results && !hasValidationErrors) return null;
+
+  const getMilestoneStatus = (val, targets, pathType, currentYearInProjection, firstAchievementYears) => {
+  const pathAchievements = firstAchievementYears[pathType];
+  const fireOrder = ['lean', 'coast', 'fire', 'fat'];
+  const fireLabels = {
+    lean: "🏋️‍♂️ Lean FIRE",
+    coast: "🦈 Coast FIRE",
+    fire: "🔥 FIRE",
+    fat: "🐋 Fat FIRE"
+  };
+
+  // 🎯 If past FAT FIRE year
+  if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
+    return "🎉 Happy Retirement!";
+  }
+
+  // ✅ Show all milestones achieved *in this year*
+  const achievedThisYear = fireOrder
+    .filter(type => pathAchievements[type] === currentYearInProjection)
+    .map(type => `${fireLabels[type]} Achieved`);
+
+  if (achievedThisYear.length > 0) {
+    return achievedThisYear.join(", ");
+  }
+
+  // 🎯 Still targeting milestones
+  for (let type of fireOrder) {
+    if (!pathAchievements[type] || currentYearInProjection < pathAchievements[type]) {
+      return `🎯 Targeting ${fireLabels[type]}`;
+    }
+  }
+
+  return "🧭 Keep going!";
+};
 
 
   return (
@@ -151,30 +541,6 @@ export default function App() {
           <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle</li>
         </ul>
       </div>
-	  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
-    <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
-  🧾 Key Assumptions Used in Calculations and Projections
-</summary>
-<ul className="list-disc list-inside mt-2 space-y-1">
-  <li>
-    <strong>FIRE Corpus Targets</strong>: Lean = 15X, FIRE = 25X, Fat = 40X your expected annual expenses at your desired early retirement age. 
-    That’s 15–40X your yearly spending (pre-tax) to sustain retirement. "Corpus" refers to your total invested retirement portfolio.
-  </li>
-  <li>
-    <strong>Inflation</strong>: Annual expenses are assumed to rise at {inputs.inflation}% per year.
-  </li>
-  <li>
-    <strong>Growth Rates</strong>: Portfolio grows at {inputs.desiredConservativeCAGR}% (Conservative) or {inputs.desiredAggressiveCAGR}% (Aggressive) annually. 
-    These are nominal rates (not adjusted for inflation).
-  </li>
-  <li>
-    <strong>Monthly Investments</strong>: Contributions continue until the respective milestone is achieved — earlier for Lean and Coast FIRE, and up to your desired early retirement age for FIRE and Fat FIRE.
-  </li>
-  <li>
-    <strong>Post-Retirement Withdrawals</strong>: Withdrawals are taxed at a flat rate of {inputs.retirementTaxRate}% which may vary depending on local tax regulations at the time of retirement. The corpus is considered depleted when funds run out or after 60 years — whichever is earlier.
-  </li>
-</ul>
-  </details>
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
  ✏️ You can update the inputs to match your age and finances — this tool will show how your path to FIRE could look, today and in the years ahead. To start over, just hit Reset to Default.
       </p>
@@ -223,7 +589,19 @@ export default function App() {
         ))}
 	</div>
 <div className="col-span-full mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-  
+  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
+    <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
+      🧾 Key Assumptions Used in Calculations and Projections
+    </summary>
+    <ul className="list-disc list-inside mt-2 space-y-1">
+      <li><strong>FIRE Corpus Targets</strong>: Lean = 15×, FIRE = 25×, Fat = 40× your expected annual expenses at FIRE age. (That’s 15–40 times your yearly spending — before tax — to sustain retirement.)</li>
+      <li><strong>Inflation</strong>: Expenses increase at {inputs.inflation}% annually.</li>
+      <li><strong>Growth</strong>: Conservative = {inputs.desiredConservativeCAGR}%, Aggressive = {inputs.desiredAggressiveCAGR}% annually.</li>
+      <li><strong>Monthly Investments</strong>: Contributions stop after reaching your FIRE age.</li>
+      <li><strong>After FIRE</strong>: Withdrawals are taxed annually at {inputs.retirementTaxRate}%. Corpus is depleted when funds run out or after 60 years — whichever comes first.</li>
+    </ul>
+  </details>
+
   <button
     onClick={() => {
       setInputs({ ...defaultInputs });
