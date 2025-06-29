@@ -6,8 +6,8 @@ const fireIcons = { lean: "🏋️‍♂️", coast: "🦈", fire: "🔥", fat: 
 const labelMap = {
   currency: "Currency",
   currentAge: "Your Current Age",
-  desiredFIREAge: "Target Age for Retirement (FIRE)",
-  desiredCoastAge: "Target Age for Coast FIRE",
+  desiredFIREAge: "Desired Age for Early Retirement (FIRE)",
+  desiredCoastAge: "Desired Age for Coast FIRE",
   monthlyExpense: "Monthly Living Expenses (Today)",
   inflation: "Expected Inflation Rate (%)",
   startMonth: "Projection Start Month",
@@ -15,8 +15,8 @@ const labelMap = {
   currentNetWorth: "Current Retirement Corpus",
   sip: "Monthly Investment Contribution",
   projectionYears: "Projection Duration (Years)",
-  desiredConservativeCAGR: "Conservative Growth Rate (%)",
-  desiredAggressiveCAGR: "Aggressive Growth Rate (%)",
+  desiredConservativeCAGR: "Conservative CAGR (%)",
+  desiredAggressiveCAGR: "Aggressive CAGR (%)",
   retirementTaxRate: "Tax at Retirement (%)"
 };
 
@@ -85,7 +85,7 @@ export default function App() {
     currentNetWorth: 10000000,
     sip: 100000,
     projectionYears: 20,
-    desiredConservativeCAGR: 10,
+    desiredConservativeCAGR: 12,
     desiredAggressiveCAGR: 18,
     retirementTaxRate: 30,
   };
