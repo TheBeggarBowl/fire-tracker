@@ -424,7 +424,7 @@ useEffect(() => {
         </ul>
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-  ✏️ You can update the inputs below to reflect your financial situation.
+ ✏️ You can update the inputs to match your age and finances — this tool will show how your path to FIRE could look, today and in the years ahead. To start over, just hit Reset to Default.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(defaultInputs).map(([k]) => (
@@ -504,7 +504,7 @@ useEffect(() => {
       {results && (
         <>
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
-            <h2 className="font-semibold text-lg">🔥 FIRE Progress (based on current retirement corpus)</h2>
+            <h2 className="font-semibold text-lg">🔥 FIRE Progress (based only on your current corpus — no future contributions) </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[600px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
@@ -534,7 +534,7 @@ useEffect(() => {
           </div>
 
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
-            <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (Year milestones are first met) </h2>
+            <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on your current corpus, monthly contributions, and growth projections) </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[500px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
