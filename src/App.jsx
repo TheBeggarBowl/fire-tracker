@@ -789,7 +789,7 @@ setDrawdownResults(drawdowns);
 	    <footer className="text-center mt-6 text-xs text-gray-600 dark:text-gray-400">
   © 2025 TheBeggarBowl — Personal & non-commercial use only.{' '}
   <a
-    href="https://github.com/TheBeggarBowl/fire-tracker/blob/main/LICENSE"
+    href="https://github.com/TheBeggarBowl/fire-tracker/blob/main/License"
     target="_blank"
     rel="noopener noreferrer"
     className="text-blue-600 dark:text-blue-400 underline"
