@@ -200,9 +200,6 @@ Good luck on your FIRE journey! 🔥`
   if (inputs.sip < 0)
     messages.sip = "Monthly SIP cannot be negative.";
 
-  if (inputs.sip > inputs.currentNetWorth / 2)
-    messages.sip = "SIP is unusually high relative to your current net worth.";
-
   if (inputs.projectionYears <= 0)
     messages.projectionYears = "Projection years must be positive.";
 
