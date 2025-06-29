@@ -542,10 +542,11 @@ setDrawdownResults(drawdowns);
       <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200">
         <strong>FIRE Milestone Descriptions</strong>
         <ul className="ml-6 list-disc mt-2">
-          <li>🏋️‍♂️ Lean FIRE – Early retirement with frugal lifestyle </li>
-          <li>🦈 Coast FIRE – Save enough early so that your portfolio can grow (at conservative returns) to meet FIRE needs without further contributions</li>
-          <li>🔥 FIRE – Early retirement with comfortable standard of living</li>
-          <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle</li>
+          <li>🏋️‍♂️ Lean FIRE – Early retirement with frugal lifestyle | Think: rice, beans, public libraries, and travel hacks. You’re free — just not fancy.</li>
+          <li>🦈 Coast FIRE – Save enough early so that your portfolio can grow (at conservative returns) to meet FIRE needs without further contributions | You still work, but investing is on autopilot — like cruising downhill on a bicycle</li>
+          <li>🔥 FIRE – Early retirement with comfortable standard of living | You cover all expenses with passive income and don't need to work unless it's for joy, clout, or boredom.</li>
+          <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle |  You’ve got more than enough to upgrade to business class never check prices at Supermarkets </li>
+	  <li>☕ Barista FIRE – When you've saved just enough to tell your boss "I'm good" and take up part-time work at a chill café | mostly  free wifi.</li>
         </ul>
       </div>
 	  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
