@@ -673,18 +673,26 @@ setDrawdownResults(drawdowns);
         </tr>
       </thead>
       <tbody>
-        {["lean", "fire", "fat"].map(type => (
-          <tr key={type} className="border-t dark:border-gray-600">
-            <td className="px-4 py-2 capitalize">{type}</td>
-            <td className="px-4 py-2">
-              {drawdownResults.conservative[type].yearsLasted} yrs, until age {drawdownResults.conservative[type].endAge}
-            </td>
-            <td className="px-4 py-2">
-              {drawdownResults.aggressive[type].yearsLasted} yrs, until age {drawdownResults.aggressive[type].endAge}
-            </td>
-          </tr>
-        ))}
-      </tbody>
+  {["lean", "fire", "fat"].map(type => {
+    const cons = drawdownResults.conservative[type];
+    const aggr = drawdownResults.aggressive[type];
+    const maxYears = 60;
+
+    const formatDuration = (years, endAge) =>
+      years >= maxYears
+        ? `🌱 Sustainable (till age ${endAge})`
+        : `${years} yrs, until age ${endAge}`;
+
+    return (
+      <tr key={type} className="border-t dark:border-gray-600">
+        <td className="px-4 py-2 capitalize">{type}</td>
+        <td className="px-4 py-2">{formatDuration(cons.yearsLasted, cons.endAge)}</td>
+        <td className="px-4 py-2">{formatDuration(aggr.yearsLasted, aggr.endAge)}</td>
+      </tr>
+    );
+  })}
+</tbody>
+
     </table>
   </div>
 )}
