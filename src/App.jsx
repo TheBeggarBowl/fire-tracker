@@ -474,8 +474,8 @@ setDrawdownResults(drawdowns);
   };
 
   // 🎯 If past FAT FIRE year
-  if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
-    return "🎉 Happy Retirement!";
+  //if (pathAchievements.fat && currentYearInProjection > pathAchievements.fat) {
+    //return "🎉 Happy Retirement!";
   }
 
   // ✅ Show all milestones achieved *in this year*
@@ -526,7 +526,7 @@ setDrawdownResults(drawdowns);
     </div>
 
     <div className="text-center mt-3 text-sm text-gray-700 dark:text-gray-300">
-      If this tool saved you time or helped your FIRE planning, consider <br />
+      If this tool saved you time or helped your Early Retirement planning, consider <br />
       <a
         href="https://coff.ee/thebeggarbowl"
         target="_blank"
@@ -794,7 +794,7 @@ setDrawdownResults(drawdowns);
         </>
       )}
     <div className="text-center mt-8 text-sm text-gray-700 dark:text-gray-300">
-  If this tool saved you time or helped your FIRE planning, consider <br />
+  If this tool saved you time or helped your Early Retirement planning, consider <br />
   <a
     href="https://coff.ee/thebeggarbowl"
     target="_blank"
