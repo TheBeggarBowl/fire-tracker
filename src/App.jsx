@@ -261,60 +261,77 @@ useEffect(() => {
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
-    const project = (rate, currentAge, desiredFIREAge) => {
-      let port = currentNetWorth;
-      const monthlyRate = rate / 12 / 100;
-      let currentProjectionYear = startYear;
-      let currentMonthInProjection = startMonth - 1;
-      const yearlyTotals = {};
+  const project = (rate, currentAge, milestoneType, firstAchievementYears) => {
+  let port = currentNetWorth;
+  const monthlyRate = rate / 12 / 100;
+  let currentProjectionYear = startYear;
+  let currentMonthInProjection = startMonth - 1;
+  const yearlyTotals = {};
 
-      for (let m = currentMonthInProjection; m < 12; m++) {
-        const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12);
-        const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0;
-        port = port * (1 + monthlyRate) + sipForThisMonth;
-      }
-      yearlyTotals[`${currentProjectionYear}`] = port;
+  const sipEndYear = (() => {
+    const fallback = desiredFIREAge;
+    if (!firstAchievementYears) return fallback;
+    if (milestoneType === "lean") return firstAchievementYears.lean ?? fallback;
+    if (milestoneType === "coast") return firstAchievementYears.coast ?? fallback;
+    return fallback; // for fire/fat
+  })();
 
-      for (let i = 1; i < projectionYears; i++) {
-        currentProjectionYear++;
-        const projectedStartOfYearAge = currentAge + (currentProjectionYear - startYear);
-        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0;
+  for (let m = currentMonthInProjection; m < 12; m++) {
+    const shouldInvest = currentProjectionYear < sipEndYear;
+    const sipForThisMonth = shouldInvest ? sip : 0;
+    port = port * (1 + monthlyRate) + sipForThisMonth;
+  }
+  yearlyTotals[`${currentProjectionYear}`] = port;
 
-        for (let m = 0; m < 12; m++) {
-          port = port * (1 + monthlyRate) + sipForThisYear;
-        }
-        yearlyTotals[`${currentProjectionYear}`] = port;
-      }
-      return yearlyTotals;
-    };
+  for (let i = 1; i < projectionYears; i++) {
+    currentProjectionYear++;
+    for (let m = 0; m < 12; m++) {
+      const shouldInvest = currentProjectionYear < sipEndYear;
+      const sipForThisMonth = shouldInvest ? sip : 0;
+      port = port * (1 + monthlyRate) + sipForThisMonth;
+    }
+    yearlyTotals[`${currentProjectionYear}`] = port;
+  }
 
-    const consProjections = project(desiredConservativeCAGR, currentAge, desiredFIREAge);
-    const aggrProjections = project(desiredAggressiveCAGR, currentAge, desiredFIREAge);
+  return yearlyTotals;
+};
 
-    const findFirstAchievementYear = (projections, milestoneType, targets) => {
-      const targetValue = targets[milestoneType];
-      for (const yearStr in projections) {
-        if (projections[yearStr] >= targetValue) {
-          return parseInt(yearStr);
-        }
-      }
-      return null;
-    };
 
-    const firstAchievementYears = {
-      conservative: {
-        lean: findFirstAchievementYear(consProjections, 'leanTarget', targets),
-        coast: findFirstAchievementYear(consProjections, 'coastTarget', targets),
-        fire: findFirstAchievementYear(consProjections, 'fireTarget', targets),
-        fat: findFirstAchievementYear(consProjections, 'fatTarget', targets),
-      },
-      aggressive: {
-        lean: findFirstAchievementYear(aggrProjections, 'leanTarget', targets),
-        coast: findFirstAchievementYear(aggrProjections, 'coastTarget', targets),
-        fire: findFirstAchievementYear(aggrProjections, 'fireTarget', targets),
-        fat: findFirstAchievementYear(aggrProjections, 'fatTarget', targets),
-      }
-    };
+    // 1. Run raw projections first (SIP continues to FIRE age)
+const consProjectionsRaw = project(desiredConservativeCAGR, currentAge, "fire");
+const aggrProjectionsRaw = project(desiredAggressiveCAGR, currentAge, "fire");
+
+// 2. Function to find milestone achievement year
+const findFirstAchievementYear = (projections, milestoneType, targets) => {
+  const targetValue = targets[milestoneType];
+  for (const yearStr in projections) {
+    if (projections[yearStr] >= targetValue) {
+      return parseInt(yearStr);
+    }
+  }
+  return null;
+};
+
+// 3. Detect milestone years
+const firstAchievementYears = {
+  conservative: {
+    lean: findFirstAchievementYear(consProjectionsRaw, 'leanTarget', targets),
+    coast: findFirstAchievementYear(consProjectionsRaw, 'coastTarget', targets),
+    fire: findFirstAchievementYear(consProjectionsRaw, 'fireTarget', targets),
+    fat: findFirstAchievementYear(consProjectionsRaw, 'fatTarget', targets),
+  },
+  aggressive: {
+    lean: findFirstAchievementYear(aggrProjectionsRaw, 'leanTarget', targets),
+    coast: findFirstAchievementYear(aggrProjectionsRaw, 'coastTarget', targets),
+    fire: findFirstAchievementYear(aggrProjectionsRaw, 'fireTarget', targets),
+    fat: findFirstAchievementYear(aggrProjectionsRaw, 'fatTarget', targets),
+  }
+};
+
+// 4. Re-run projections with SIPs stopping at correct milestone years
+const consProjections = project(desiredConservativeCAGR, currentAge, "fire", firstAchievementYears.conservative);
+const aggrProjections = project(desiredAggressiveCAGR, currentAge, "fire", firstAchievementYears.aggressive);
+
 
     setResults({
       yearlyExpenses,
@@ -518,8 +535,7 @@ setDrawdownResults(drawdowns);
       >
         ☕ buying me a coffee
       </a>
-      🙏
-    </div>
+      </div>
   </>
 )}
 
@@ -786,8 +802,7 @@ setDrawdownResults(drawdowns);
   >
     ☕ buying me a coffee
   </a>
-  🙏
-</div>
+  </div>
 	    <footer className="text-center mt-6 text-xs text-gray-600 dark:text-gray-400">
   © 2025 TheBeggarBowl — Personal & non-commercial use only.{' '}
   <a
