@@ -261,35 +261,50 @@ useEffect(() => {
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
-    const project = (rate, currentAge, desiredFIREAge) => {
-      let port = currentNetWorth;
-      const monthlyRate = rate / 12 / 100;
-      let currentProjectionYear = startYear;
-      let currentMonthInProjection = startMonth - 1;
-      const yearlyTotals = {};
+    const project = (rate, currentAge, milestoneType, firstAchievementYears) => {
+  let port = currentNetWorth;
+  const monthlyRate = rate / 12 / 100;
+  let currentProjectionYear = startYear;
+  let currentMonthInProjection = startMonth - 1;
+  const yearlyTotals = {};
 
-      for (let m = currentMonthInProjection; m < 12; m++) {
-        const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12);
-        const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0;
-        port = port * (1 + monthlyRate) + sipForThisMonth;
-      }
-      yearlyTotals[`${currentProjectionYear}`] = port;
+  // Define SIP cutoff logic per milestone
+  const sipEndYear = (() => {
+    if (milestoneType === "lean") {
+      return firstAchievementYears.lean ?? desiredFIREAge;
+    } else if (milestoneType === "coast") {
+      return firstAchievementYears.coast ?? desiredFIREAge;
+    } else {
+      return desiredFIREAge;
+    }
+  })();
 
-      for (let i = 1; i < projectionYears; i++) {
-        currentProjectionYear++;
-        const projectedStartOfYearAge = currentAge + (currentProjectionYear - startYear);
-        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0;
+  for (let m = currentMonthInProjection; m < 12; m++) {
+    const projectedAge = currentAge + (currentProjectionYear - startYear) + m / 12;
+    const shouldInvest = currentProjectionYear < sipEndYear;
+    const sipForThisMonth = shouldInvest ? sip : 0;
+    port = port * (1 + monthlyRate) + sipForThisMonth;
+  }
+  yearlyTotals[`${currentProjectionYear}`] = port;
 
-        for (let m = 0; m < 12; m++) {
-          port = port * (1 + monthlyRate) + sipForThisYear;
-        }
-        yearlyTotals[`${currentProjectionYear}`] = port;
-      }
-      return yearlyTotals;
-    };
+  for (let i = 1; i < projectionYears; i++) {
+    currentProjectionYear++;
+    for (let m = 0; m < 12; m++) {
+      const projectedAge = currentAge + (currentProjectionYear - startYear) + m / 12;
+      const shouldInvest = currentProjectionYear < sipEndYear;
+      const sipForThisMonth = shouldInvest ? sip : 0;
+      port = port * (1 + monthlyRate) + sipForThisMonth;
+    }
+    yearlyTotals[`${currentProjectionYear}`] = port;
+  }
 
-    const consProjections = project(desiredConservativeCAGR, currentAge, desiredFIREAge);
-    const aggrProjections = project(desiredAggressiveCAGR, currentAge, desiredFIREAge);
+  return yearlyTotals;
+};
+
+
+    const consProjections = project(desiredConservativeCAGR, currentAge, "fire", firstAchievementYears.conservative);
+	const aggrProjections = project(desiredAggressiveCAGR, currentAge, "fire", firstAchievementYears.aggressive);
+
 
     const findFirstAchievementYear = (projections, milestoneType, targets) => {
       const targetValue = targets[milestoneType];
@@ -518,8 +533,7 @@ setDrawdownResults(drawdowns);
       >
         ☕ buying me a coffee
       </a>
-      🙏
-    </div>
+      </div>
   </>
 )}
 
@@ -786,8 +800,7 @@ setDrawdownResults(drawdowns);
   >
     ☕ buying me a coffee
   </a>
-  🙏
-</div>
+  </div>
 	    <footer className="text-center mt-6 text-xs text-gray-600 dark:text-gray-400">
   © 2025 TheBeggarBowl — Personal & non-commercial use only.{' '}
   <a
