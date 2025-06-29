@@ -68,8 +68,17 @@ export default function App() {
       return a;
     }, {});
   });
+  const [rawInputs, setRawInputs] = useState(() => {
+  return Object.keys(defaultInputs).reduce((a, k) => {
+    const stored = localStorage.getItem(k);
+    a[k] = stored !== null ? JSON.parse(stored).toString() : defaultInputs[k].toString();
+    return a;
+  }, {});
+});
+
 
   const [results, setResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -102,19 +111,26 @@ Good luck on your FIRE journey! 🔥`
   }, []);
 
   const update = (k, v) => {
-    const numericKeys = [
-      "monthlyExpense", "sip", "currentNetWorth", "inflation",
-      "projectionYears", "desiredConservativeCAGR",
-      "desiredAggressiveCAGR", "currentAge", "desiredFIREAge",
-      "desiredCoastAge", "retirementTaxRate"
-    ];
-    const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
+  setRawInputs(prev => ({ ...prev, [k]: v }));
 
-    setInputs(prev => ({
-      ...prev,
-      [k]: numericKeys.includes(k) ? Number(cleanedValue) : cleanedValue
-    }));
-  };
+  const numericKeys = [
+    "monthlyExpense", "sip", "currentNetWorth", "inflation",
+    "projectionYears", "desiredConservativeCAGR",
+    "desiredAggressiveCAGR", "currentAge", "desiredFIREAge",
+    "desiredCoastAge", "retirementTaxRate"
+  ];
+
+  const cleanedValue = typeof v === "string" ? v.replace(/,/g, "") : v;
+
+  if (numericKeys.includes(k)) {
+    const num = Number(cleanedValue);
+    if (!isNaN(num)) {
+      setInputs(prev => ({ ...prev, [k]: num }));
+    }
+  } else {
+    setInputs(prev => ({ ...prev, [k]: cleanedValue }));
+  }
+};
 
   const validationMessages = useMemo(() => {
     const messages = {};
@@ -137,12 +153,15 @@ Good luck on your FIRE journey! 🔥`
 
   const hasValidationErrors = Object.keys(validationMessages).length > 0;
 
-  useEffect(() => {
-    if (hasValidationErrors) {
-      setResults(null);
-      return;
-    }
+useEffect(() => {
+  if (hasValidationErrors) {
+    setResults(null);
+    return;
+  }
 
+  setIsLoading(true); // Start loading
+
+  setTimeout(() => {
     const {
       sip, currentNetWorth, startMonth, startYear,
       projectionYears, desiredConservativeCAGR,
@@ -171,7 +190,9 @@ Good luck on your FIRE journey! 🔥`
     const fatTarget = expAtFIRE * expenseMultiplierDueToTax * 40;
 
     const yearsBetweenCoastAndFire = desiredFIREAge - desiredCoastAge;
-    const coastTarget = (yearsBetweenCoastAndFire > 0) ? fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire) : fireTarget;
+    const coastTarget = (yearsBetweenCoastAndFire > 0)
+      ? fireTarget / Math.pow(1 + desiredConservativeCAGR / 100, yearsBetweenCoastAndFire)
+      : fireTarget;
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
@@ -180,27 +201,19 @@ Good luck on your FIRE journey! 🔥`
       const monthlyRate = rate / 12 / 100;
       let currentProjectionYear = startYear;
       let currentMonthInProjection = startMonth - 1;
-
       const yearlyTotals = {};
 
       for (let m = currentMonthInProjection; m < 12; m++) {
-          const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12); // Age at this month
-          // SIP continues until the end of the year *before* desiredFIREAge is completed.
-          // Example: If desiredFIREAge is 50, SIP stops as you turn 50.
-          // This means, SIP is included for ages 0-49.999...
-          const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0; 
-          port = port * (1 + monthlyRate) + sipForThisMonth;
+        const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12);
+        const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0;
+        port = port * (1 + monthlyRate) + sipForThisMonth;
       }
       yearlyTotals[`${currentProjectionYear}`] = port;
 
       for (let i = 1; i < projectionYears; i++) {
         currentProjectionYear++;
-        // SIP for this entire year. It continues as long as the projected age for *any part of this year* is less than desiredFIREAge.
-        // It should stop after the desiredFIREAge is attained.
-        // If desiredFIREAge is 50, SIP should apply until the end of year age 49.
-        // For year 'X', if currentAge + (X - startYear) < desiredFIREAge, then SIP applies.
         const projectedStartOfYearAge = currentAge + (currentProjectionYear - startYear);
-        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0; 
+        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0;
 
         for (let m = 0; m < 12; m++) {
           port = port * (1 + monthlyRate) + sipForThisYear;
@@ -246,13 +259,15 @@ Good luck on your FIRE journey! 🔥`
       firstAchievementYears
     });
 
-  }, [
-    inputs.sip, inputs.currentNetWorth, inputs.startMonth, inputs.startYear,
-    inputs.projectionYears, inputs.desiredConservativeCAGR,
-    inputs.desiredAggressiveCAGR, inputs.currentAge, inputs.desiredFIREAge,
-    inputs.desiredCoastAge, inputs.monthlyExpense, inputs.inflation,
-    inputs.retirementTaxRate, hasValidationErrors
-  ]);
+    setIsLoading(false); // Stop loading
+  }, 0);
+}, [
+  inputs.sip, inputs.currentNetWorth, inputs.startMonth, inputs.startYear,
+  inputs.projectionYears, inputs.desiredConservativeCAGR,
+  inputs.desiredAggressiveCAGR, inputs.currentAge, inputs.desiredFIREAge,
+  inputs.desiredCoastAge, inputs.monthlyExpense, inputs.inflation,
+  inputs.retirementTaxRate, hasValidationErrors
+]);
 
   const fmt = (v) => {
     const cur = inputs.currency;
@@ -438,33 +453,50 @@ Good luck on your FIRE journey! 🔥`
               />
             ) : (
               <input
-                type="number"
-                value={inputs[k]}
-                onChange={e => update(k, e.target.value)}
-                className={`mt-1 block w-full border rounded px-2 py-1 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white ${validationMessages[k] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-              />
+				type="text"
+				inputMode="numeric"
+				value={rawInputs[k]}
+				onChange={e => update(k, e.target.value)}
+				className={`mt-1 block w-full border rounded px-2 py-1 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white ${validationMessages[k] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+			/>
+
             )}
             {validationMessages[k] && (
               <p className="text-red-500 text-xs mt-1">{validationMessages[k]}</p>
             )}
           </div>
         ))}
-        <div className="col-span-full text-right mt-4 sm:mt-0">
-            <button
-                onClick={() => setInputs({ ...defaultInputs })}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
-            >
-                Reset to Default
-            </button>
-        </div>
-      </div>
+       <div className="col-span-full text-right mt-4 sm:mt-0">
+  <button
+    onClick={() => {
+      setInputs({ ...defaultInputs });
+      setRawInputs(
+        Object.keys(defaultInputs).reduce((a, k) => {
+          a[k] = defaultInputs[k].toString();
+          return a;
+        }, {})
+      );
+      Object.entries(defaultInputs).forEach(([k, v]) =>
+        localStorage.setItem(k, JSON.stringify(v))
+      );
+    }}
+    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
+  >
+    Reset to Default
+  </button>
+</div>
+
       
       {hasValidationErrors && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded text-sm dark:bg-red-900 dark:border-red-700 dark:text-red-200">
           <strong>🚫 Input Errors:</strong> Please correct the highlighted fields to proceed with calculations.
         </div>
       )}
-
+	{isLoading && (
+  <div className="text-center py-6 text-blue-600 dark:text-blue-300 font-medium">
+    🔄 Calculating projections...
+  </div>
+)}
       {results && (
         <>
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
