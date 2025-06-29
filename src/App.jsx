@@ -675,7 +675,7 @@ setDrawdownResults(drawdowns);
       <tbody>
         {["lean", "fire", "fat"].map(type => (
           <tr key={type} className="border-t dark:border-gray-600">
-            <td className="px-4 py-2 capitalize">{type} FIRE</td>
+            <td className="px-4 py-2 capitalize">{type}</td>
             <td className="px-4 py-2">
               {drawdownResults.conservative[type].yearsLasted} yrs, until age {drawdownResults.conservative[type].endAge}
             </td>
