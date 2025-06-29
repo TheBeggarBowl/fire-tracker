@@ -261,35 +261,50 @@ useEffect(() => {
 
     const targets = { leanTarget, coastTarget, fireTarget, fatTarget };
 
-    const project = (rate, currentAge, desiredFIREAge) => {
-      let port = currentNetWorth;
-      const monthlyRate = rate / 12 / 100;
-      let currentProjectionYear = startYear;
-      let currentMonthInProjection = startMonth - 1;
-      const yearlyTotals = {};
+    const project = (rate, currentAge, milestoneType, firstAchievementYears) => {
+  let port = currentNetWorth;
+  const monthlyRate = rate / 12 / 100;
+  let currentProjectionYear = startYear;
+  let currentMonthInProjection = startMonth - 1;
+  const yearlyTotals = {};
 
-      for (let m = currentMonthInProjection; m < 12; m++) {
-        const projectedMonthAgeForSIP = currentAge + (currentProjectionYear - startYear) + (m / 12);
-        const sipForThisMonth = (projectedMonthAgeForSIP < desiredFIREAge) ? sip : 0;
-        port = port * (1 + monthlyRate) + sipForThisMonth;
-      }
-      yearlyTotals[`${currentProjectionYear}`] = port;
+  // Define SIP cutoff logic per milestone
+  const sipEndYear = (() => {
+    if (milestoneType === "lean") {
+      return firstAchievementYears.lean ?? desiredFIREAge;
+    } else if (milestoneType === "coast") {
+      return firstAchievementYears.coast ?? desiredFIREAge;
+    } else {
+      return desiredFIREAge;
+    }
+  })();
 
-      for (let i = 1; i < projectionYears; i++) {
-        currentProjectionYear++;
-        const projectedStartOfYearAge = currentAge + (currentProjectionYear - startYear);
-        const sipForThisYear = (projectedStartOfYearAge < desiredFIREAge) ? sip : 0;
+  for (let m = currentMonthInProjection; m < 12; m++) {
+    const projectedAge = currentAge + (currentProjectionYear - startYear) + m / 12;
+    const shouldInvest = currentProjectionYear < sipEndYear;
+    const sipForThisMonth = shouldInvest ? sip : 0;
+    port = port * (1 + monthlyRate) + sipForThisMonth;
+  }
+  yearlyTotals[`${currentProjectionYear}`] = port;
 
-        for (let m = 0; m < 12; m++) {
-          port = port * (1 + monthlyRate) + sipForThisYear;
-        }
-        yearlyTotals[`${currentProjectionYear}`] = port;
-      }
-      return yearlyTotals;
-    };
+  for (let i = 1; i < projectionYears; i++) {
+    currentProjectionYear++;
+    for (let m = 0; m < 12; m++) {
+      const projectedAge = currentAge + (currentProjectionYear - startYear) + m / 12;
+      const shouldInvest = currentProjectionYear < sipEndYear;
+      const sipForThisMonth = shouldInvest ? sip : 0;
+      port = port * (1 + monthlyRate) + sipForThisMonth;
+    }
+    yearlyTotals[`${currentProjectionYear}`] = port;
+  }
 
-    const consProjections = project(desiredConservativeCAGR, currentAge, desiredFIREAge);
-    const aggrProjections = project(desiredAggressiveCAGR, currentAge, desiredFIREAge);
+  return yearlyTotals;
+};
+
+
+    const consProjections = project(desiredConservativeCAGR, currentAge, "fire", firstAchievementYears.conservative);
+	const aggrProjections = project(desiredAggressiveCAGR, currentAge, "fire", firstAchievementYears.aggressive);
+
 
     const findFirstAchievementYear = (projections, milestoneType, targets) => {
       const targetValue = targets[milestoneType];
@@ -470,16 +485,6 @@ setDrawdownResults(drawdowns);
     return achievedThisYear.join(", ");
   }
 
-  // 🎯 Still targeting milestones
-  for (let type of fireOrder) {
-    if (!pathAchievements[type] || currentYearInProjection < pathAchievements[type]) {
-      return `🎯 Targeting ${fireLabels[type]}`;
-    }
-  }
-
-  return "🧭 Keep going!";
-};
-
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 font-sans bg-white text-gray-900 dark:bg-gray-800 dark:text-white min-h-screen transition-colors duration-200">
@@ -541,6 +546,30 @@ setDrawdownResults(drawdowns);
           <li>🐋 Fat FIRE – Early retirement with luxurious lifestyle</li>
         </ul>
       </div>
+	  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
+    <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
+  🧾 Key Assumptions Used in Calculations and Projections
+</summary>
+<ul className="list-disc list-inside mt-2 space-y-1">
+  <li>
+    <strong>FIRE Corpus Targets</strong>: Lean = 15X, FIRE = 25X, Fat = 40X your expected annual expenses at your desired early retirement age. 
+    That’s 15–40X your yearly spending (pre-tax) to sustain retirement. "Corpus" refers to your total invested retirement portfolio.
+  </li>
+  <li>
+    <strong>Inflation</strong>: Annual expenses are assumed to rise at {inputs.inflation}% per year.
+  </li>
+  <li>
+    <strong>Growth Rates</strong>: Portfolio grows at {inputs.desiredConservativeCAGR}% (Conservative) or {inputs.desiredAggressiveCAGR}% (Aggressive) annually. 
+    These are nominal rates (not adjusted for inflation).
+  </li>
+  <li>
+    <strong>Monthly Investments</strong>: Contributions continue until the respective milestone is achieved — earlier for Lean and Coast FIRE, and up to your desired early retirement age for FIRE and Fat FIRE.
+  </li>
+  <li>
+    <strong>Post-Retirement Withdrawals</strong>: Withdrawals are taxed at a flat rate of {inputs.retirementTaxRate}% which may vary depending on local tax regulations at the time of retirement. The corpus is considered depleted when funds run out or after 60 years — whichever is earlier.
+  </li>
+</ul>
+  </details>
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
  ✏️ You can update the inputs to match your age and finances — this tool will show how your path to FIRE could look, today and in the years ahead. To start over, just hit Reset to Default.
       </p>
@@ -589,19 +618,7 @@ setDrawdownResults(drawdowns);
         ))}
 	</div>
 <div className="col-span-full mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 border dark:border-gray-700 w-full sm:w-2/3">
-    <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
-      🧾 Key Assumptions Used in Calculations and Projections
-    </summary>
-    <ul className="list-disc list-inside mt-2 space-y-1">
-      <li><strong>FIRE Corpus Targets</strong>: Lean = 15×, FIRE = 25×, Fat = 40× your expected annual expenses at FIRE age. (That’s 15–40 times your yearly spending — before tax — to sustain retirement.)</li>
-      <li><strong>Inflation</strong>: Expenses increase at {inputs.inflation}% annually.</li>
-      <li><strong>Growth</strong>: Conservative = {inputs.desiredConservativeCAGR}%, Aggressive = {inputs.desiredAggressiveCAGR}% annually.</li>
-      <li><strong>Monthly Investments</strong>: Contributions stop after reaching your FIRE age.</li>
-      <li><strong>After FIRE</strong>: Withdrawals are taxed annually at {inputs.retirementTaxRate}%. Corpus is depleted when funds run out or after 60 years — whichever comes first.</li>
-    </ul>
-  </details>
-
+  
   <button
     onClick={() => {
       setInputs({ ...defaultInputs });
