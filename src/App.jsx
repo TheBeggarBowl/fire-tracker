@@ -40,6 +40,34 @@ const getMilestoneState = (val, targets) => {
   return { lean, coast, fire, fat };
 };
 
+function simulateDrawdown({
+  startingCorpus,
+  startAge,
+  inflationRate,
+  annualGrowthRate,
+  annualTaxRate,
+  initialAnnualExpense,
+  maxYears = 60
+}) {
+  let corpus = startingCorpus;
+  let age = startAge;
+  let yearsLasted = 0;
+  let expense = initialAnnualExpense;
+
+  for (let i = 0; i < maxYears; i++) {
+    corpus *= 1 + annualGrowthRate / 100;
+    const grossWithdrawal = expense / (1 - annualTaxRate / 100);
+    corpus -= grossWithdrawal;
+    if (corpus <= 0) break;
+    expense *= 1 + inflationRate / 100;
+    age++;
+    yearsLasted++;
+  }
+
+  return { yearsLasted, endAge: age };
+}
+
+
 export default function App() {
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // getMonth() is 0-indexed
@@ -78,6 +106,7 @@ export default function App() {
 
 
   const [results, setResults] = useState(null);
+  const [drawdownResults, setDrawdownResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
 
@@ -180,17 +209,14 @@ useEffect(() => {
       exp *= 1 + inflation / 100;
     }
 
-    let expenseMultiplierDueToTax = 1;
-    if (retirementTaxRate < 100) {
-      expenseMultiplierDueToTax = 1 / (1 - (retirementTaxRate / 100));
-    }
+    const fireYear = startYear + (desiredFIREAge - currentAge);
+	const expAtFIRE = yearlyExpenses[fireYear];
 
-    const targetYearFIRE = startYear + (desiredFIREAge - currentAge);
-    const expAtFIRE = yearlyExpenses[targetYearFIRE];
+	const leanTarget = expAtFIRE * 15;
+	const fireTarget = expAtFIRE * 25;
+	const fatTarget = expAtFIRE * 40;
 
-    const leanTarget = expAtFIRE * expenseMultiplierDueToTax * 15;
-    const fireTarget = expAtFIRE * expenseMultiplierDueToTax * 25;
-    const fatTarget = expAtFIRE * expenseMultiplierDueToTax * 40;
+
 
     const yearsBetweenCoastAndFire = desiredFIREAge - desiredCoastAge;
     const coastTarget = (yearsBetweenCoastAndFire > 0)
@@ -261,6 +287,62 @@ useEffect(() => {
       aggr: aggrProjections,
       firstAchievementYears
     });
+const drawdowns = {
+  conservative: {
+    lean: simulateDrawdown({
+      startingCorpus: leanTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredConservativeCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fire: simulateDrawdown({
+      startingCorpus: fireTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredConservativeCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fat: simulateDrawdown({
+      startingCorpus: fatTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredConservativeCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    })
+  },
+  aggressive: {
+    lean: simulateDrawdown({
+      startingCorpus: leanTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredAggressiveCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fire: simulateDrawdown({
+      startingCorpus: fireTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredAggressiveCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    }),
+    fat: simulateDrawdown({
+      startingCorpus: fatTarget,
+      startAge: desiredFIREAge,
+      inflationRate: inflation,
+      annualGrowthRate: desiredAggressiveCAGR,
+      annualTaxRate: retirementTaxRate,
+      initialAnnualExpense: expAtFIRE
+    })
+  }
+};
+
+setDrawdownResults(drawdowns);
 
     setIsLoading(false); // Stop loading
   }, 0);
@@ -488,6 +570,19 @@ useEffect(() => {
   >
     Reset to Default
   </button>
+  <details className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded p-4 mt-6 border dark:border-gray-700">
+  <summary className="font-medium cursor-pointer text-gray-800 dark:text-gray-200">
+    🧾 Key Assumptions Used in Projections
+  </summary>
+  <ul className="list-disc list-inside mt-2 space-y-1">
+    <li><strong>FIRE Corpus Targets</strong>: Lean = 15×, FIRE = 25×, Fat = 40× annual expenses (pre-tax).</li>
+    <li><strong>Inflation</strong>: Expenses grow at {inputs.inflation}% annually.</li>
+    <li><strong>Growth</strong>: Conservative = {inputs.desiredConservativeCAGR}%, Aggressive = {inputs.desiredAggressiveCAGR}%.</li>
+    <li><strong>SIP Contributions</strong> stop after FIRE age.</li>
+    <li><strong>Drawdown</strong>: Withdrawals taxed annually at {inputs.retirementTaxRate}%, ends when corpus hits 0 or 60 years.</li>
+  </ul>
+</details>
+
 </div>
 
       
@@ -609,6 +704,34 @@ useEffect(() => {
               </tbody>
             </table>
           </div>
+		  {drawdownResults && (
+  <div className="mt-8">
+    <h2 className="font-semibold text-lg mb-4">💸 Post-FIRE Corpus Longevity</h2>
+    <table className="min-w-full bg-white dark:bg-gray-800 border rounded overflow-hidden text-sm">
+      <thead className="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th className="px-4 py-2 text-left">FIRE Type</th>
+          <th className="px-4 py-2 text-left">Conservative (Age)</th>
+          <th className="px-4 py-2 text-left">Aggressive (Age)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {["lean", "fire", "fat"].map(type => (
+          <tr key={type} className="border-t dark:border-gray-600">
+            <td className="px-4 py-2 capitalize">{type} FIRE</td>
+            <td className="px-4 py-2">
+              {drawdownResults.conservative[type].yearsLasted} yrs, until age {drawdownResults.conservative[type].endAge}
+            </td>
+            <td className="px-4 py-2">
+              {drawdownResults.aggressive[type].yearsLasted} yrs, until age {drawdownResults.aggressive[type].endAge}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
         </>
       )}
     <div className="text-center mt-8 text-sm text-gray-700 dark:text-gray-300">
