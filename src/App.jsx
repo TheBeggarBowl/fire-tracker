@@ -430,10 +430,10 @@ setDrawdownResults(drawdowns);
     const { leanTarget, coastTarget, fireTarget, fatTarget } = results.targets;
 
     const data = [
-      ["🏋️‍♂️ Lean FIRE", leanTarget, inputs.desiredFIREAge],
-      ["🦈 Coast FIRE", coastTarget, inputs.desiredCoastAge],
+      ["🏋️‍♂️ LEAN", leanTarget, inputs.desiredFIREAge],
+      ["🦈 COAST", coastTarget, inputs.desiredCoastAge],
       ["🔥 FIRE", fireTarget, inputs.desiredFIREAge],
-      ["🐋 Fat FIRE", fatTarget, inputs.desiredFIREAge],
+      ["🐋 FAT", fatTarget, inputs.desiredFIREAge],
     ];
 
     return data.map(([label, tgt, age]) => {
