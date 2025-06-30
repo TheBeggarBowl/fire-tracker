@@ -134,7 +134,7 @@ export default function App() {
   useEffect(() => {
     alert(
       `📢 Disclaimer:
-This calculator provides illustrative financial projections based on user input. It does not constitute financial advice. Market returns, inflation, and tax laws are uncertain and may differ significantly from the assumptions used here. Always consult a financial advisor before making retirement decisions.The creator is not responsible for any anomalies.
+🔥 This calculator provides illustrative financial projections based on user input. It does not constitute financial advice. Market returns, inflation, and tax laws are uncertain and may differ significantly from the assumptions used here. Always consult a financial advisor before making retirement decisions.The creator is not responsible for any anomalies.
 Good luck on your FIRE journey! 🔥`
     );
   }, []);
@@ -515,7 +515,7 @@ setDrawdownResults(drawdowns);
       {showIntro && (
   <>
     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded relative text-sm dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
-      <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>. This calculator helps you estimate key milestones on your path to early retirement. Please note these are rough projections and not financial advice.
+      <strong>📖 Read This First:</strong> FIRE stands for <em>Financial Independence, Retire Early</em>.  This calculator gives a ballpark view of key milestones on the road to early retirement. Numbers are based on realistic scenarios, but hey—it's all still just an estimate, not gospel. When it comes to money moves… IYKYK 😉.
       <button
         className="absolute top-1 right-2 text-xl text-yellow-700 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
         onClick={() => setShowIntro(false)}
@@ -681,15 +681,15 @@ setDrawdownResults(drawdowns);
           </div>
 
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
-            <h2 className="font-semibold text-lg">📈 Projected Milestone Achievements (based on your current corpus, monthly contributions, and growth projections) </h2>
+            <h2 className="font-semibold text-lg">📈 Milestone Achievements (based on your current corpus, monthly contributions, and growth projections) </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[500px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
                   <tr>
                     <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Milestone</th>
                     <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Target</th>
-                    <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Conservative Year</th>
-                    <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Aggressive Year</th>
+                    <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Conservative Growth</th>
+                    <th className="border px-2 py-1 border-gray-300 dark:border-gray-600">Aggressive Growth</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -718,13 +718,13 @@ setDrawdownResults(drawdowns);
           </div>
 {drawdownResults && (
   <div className="mt-8">
-    <h2 className="font-semibold text-lg mb-4">💡 How Long Will Your Money Last After FIRE? </h2>
+    <h2 className="font-semibold text-lg mb-4">💡 How long will Your money last? </h2>
     <table className="min-w-full bg-white dark:bg-gray-800 border rounded overflow-hidden text-sm">
       <thead className="bg-gray-100 dark:bg-gray-700">
         <tr>
           <th className="px-4 py-2 text-left">FIRE Type</th>
-          <th className="px-4 py-2 text-left">Conservative (Age)</th>
-          <th className="px-4 py-2 text-left">Aggressive (Age)</th>
+          <th className="px-4 py-2 text-left">Conservative Growth </th>
+          <th className="px-4 py-2 text-left">Aggressive Growth </th>
         </tr>
       </thead>
       <tbody>
