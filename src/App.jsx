@@ -82,10 +82,10 @@ export default function App() {
     inflation: 5,
     startMonth: currentMonth,
     startYear: currentYear,
-    currentNetWorth: 10000000,
+    currentNetWorth: 15000000,
     sip: 100000,
     projectionYears: 20,
-    desiredConservativeCAGR: 12,
+    desiredConservativeCAGR: 10,
     desiredAggressiveCAGR: 18,
     retirementTaxRate: 30,
   };
