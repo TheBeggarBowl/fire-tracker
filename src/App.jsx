@@ -651,7 +651,7 @@ setDrawdownResults(drawdowns);
       {results && (
         <>
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
-            <h2 className="font-semibold text-lg">🔥 FIRE Progress (based only on your current corpus — no future contributions) </h2>
+            <h2 className="font-semibold text-lg">🔥 FIRE Progress (based only on your current retirement corpus — no future contributions) </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[600px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
@@ -681,7 +681,7 @@ setDrawdownResults(drawdowns);
           </div>
 
           <div className="bg-gray-100 p-4 rounded dark:bg-gray-700">
-            <h2 className="font-semibold text-lg">📈 Milestone Achievements (based on your current corpus, monthly contributions, and growth projections) </h2>
+            <h2 className="font-semibold text-lg">📈 Milestone Achievements (based on your current retirement corpus, monthly contributions, and growth projections) </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-center text-sm mt-2 border border-gray-300 dark:border-gray-600 min-w-[500px]">
                 <thead className="bg-gray-200 dark:bg-gray-600">
