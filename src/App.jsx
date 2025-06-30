@@ -84,7 +84,7 @@ export default function App() {
     startYear: currentYear,
     currentNetWorth: 15000000,
     sip: 100000,
-    projectionYears: 20,
+    projectionYears: 40,
     desiredConservativeCAGR: 10,
     desiredAggressiveCAGR: 18,
     retirementTaxRate: 30,
